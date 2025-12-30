@@ -26,7 +26,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 
 | Phase | Status | Sprints Completed |
 |-------|--------|-------------------|
-| Phase 1: Foundation | In Progress | 3/5 |
+| Phase 1: Foundation | In Progress | 4/5 |
 | Phase 2: Status Updates | Not Started | 0/2 |
 | Phase 3: Follow-ups | Not Started | 0/3 |
 | Phase 4: Dashboard | Not Started | 0/2 |
@@ -39,7 +39,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 - [x] Sprint 1.1: Project setup
 - [x] Sprint 1.2: Database models and initialization
 - [x] Sprint 1.3: Project routes (Create/List)
-- [ ] Sprint 1.4: Project routes (Detail/Edit/Archive)
+- [x] Sprint 1.4: Project routes (Detail/Edit/Archive)
 - [ ] Sprint 1.5: Templates and styling
 
 #### Phase 2: Status Updates
@@ -75,6 +75,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-30 | 1.1 | Project setup complete - directory structure, venv, requirements.txt, config.py, run.py all in place | Database models, routes, and templates also partially created (ahead of schedule) |
 | 2025-12-30 | 1.2 | Database models and initialization complete - added 6 indexes to models.py (status, internal_deadline, due_date, completed, project_id, created_at), recreated database with indexes | All verification criteria met: flask init-db works, all 3 tables exist with correct columns, all 6 indexes created |
 | 2025-12-30 | 1.3 | Project routes (Create/List) complete - implemented POST /projects handler with form parsing, date conversion, and optional initial status update creation | All verification criteria met: GET /projects returns 200, GET /projects/new shows form, POST creates project in database |
+| 2025-12-30 | 1.4 | Project routes (Detail/Edit/Archive) complete - implemented POST handlers for edit (update all fields) and archive (set status='archived') | All verification criteria met: detail/edit pages return 200, edit POST updates project, archive removes from active list, invalid ID returns 404 |
 
 ---
 

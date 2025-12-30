@@ -71,8 +71,45 @@ def edit(id):
     """Edit a project."""
     project = Project.query.get_or_404(id)
     if request.method == 'POST':
-        # TODO: Handle form submission
-        pass
+        # Parse date fields
+        hard_deadline = None
+        if request.form.get('hard_deadline'):
+            hard_deadline = datetime.strptime(request.form['hard_deadline'], '%Y-%m-%d').date()
+
+        internal_deadline = datetime.strptime(request.form['internal_deadline'], '%Y-%m-%d').date()
+
+        # Parse optional float fields
+        estimated_hours = None
+        if request.form.get('estimated_hours'):
+            try:
+                estimated_hours = float(request.form['estimated_hours'])
+            except ValueError:
+                pass
+
+        actual_hours = None
+        if request.form.get('actual_hours'):
+            try:
+                actual_hours = float(request.form['actual_hours'])
+            except ValueError:
+                pass
+
+        # Update project fields
+        project.client_name = request.form['client_name']
+        project.project_name = request.form['project_name']
+        project.matter_number = request.form.get('matter_number') or None
+        project.hard_deadline = hard_deadline
+        project.internal_deadline = internal_deadline
+        project.assigner = request.form['assigner']
+        project.assigned_attorneys = request.form['assigned_attorneys']
+        project.priority = request.form['priority']
+        project.estimated_hours = estimated_hours
+        project.actual_hours = actual_hours
+        project.updated_at = datetime.utcnow()
+
+        db.session.commit()
+        flash(f'Project "{project.project_name}" updated successfully.', 'success')
+        return redirect(url_for('projects.detail', id=project.id))
+
     return render_template('projects/form.html', project=project)
 
 
@@ -80,5 +117,8 @@ def edit(id):
 def archive(id):
     """Archive a project."""
     project = Project.query.get_or_404(id)
-    # TODO: Handle archiving
+    project.status = 'archived'
+    project.updated_at = datetime.utcnow()
+    db.session.commit()
+    flash(f'Project "{project.project_name}" has been archived.', 'success')
     return redirect(url_for('projects.list'))
