@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Legal Worklist{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>Today</h1>
+
+    <section class="dashboard-section">
+        <h2>Follow-ups Due Today</h2>
+        <p class="placeholder">Follow-ups due today will appear here.</p>
+    </section>
+
+    <section class="dashboard-section">
+        <h2>Overdue Follow-ups</h2>
+        <p class="placeholder">Overdue follow-ups will appear here.</p>
+    </section>
+
+    <section class="dashboard-section">
+        <h2>Upcoming Deadlines</h2>
+        <p class="placeholder">Projects with deadlines in the next 7 days will appear here.</p>
+    </section>
+
+    <section class="dashboard-section">
+        <h2>Dusty Projects</h2>
+        <p class="placeholder">Projects with no recent updates will appear here.</p>
+    </section>
+</div>
+{% endblock %}

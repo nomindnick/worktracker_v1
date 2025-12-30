@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Follow-ups - Legal Worklist{% endblock %}
+
+{% block content %}
+<div class="followups-list">
+    <div class="page-header">
+        <h1>Follow-ups</h1>
+        <a href="{{ url_for('followups.new') }}" class="btn btn-primary">New Follow-up</a>
+    </div>
+
+    {% if followups %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Target</th>
+                <th>Due Date</th>
+                <th>Notes</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for followup in followups %}
+            <tr>
+                <td><a href="{{ url_for('projects.detail', id=followup.project_id) }}">{{ followup.project.client_name }}: {{ followup.project.project_name }}</a></td>
+                <td>{{ followup.target_name }} ({{ followup.target_type }})</td>
+                <td>{{ followup.due_date }}</td>
+                <td>{{ followup.notes or '-' }}</td>
+                <td>
+                    <form action="{{ url_for('followups.complete', id=followup.id) }}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-small btn-success">Complete</button>
+                    </form>
+                    <form action="{{ url_for('followups.snooze', id=followup.id) }}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-small">Snooze</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No pending follow-ups.</p>
+    {% endif %}
+</div>
+{% endblock %}

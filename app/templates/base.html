@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Legal Worklist{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-brand">Legal Worklist</div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('dashboard.index') }}" {% if request.endpoint == 'dashboard.index' %}class="active"{% endif %}>Dashboard</a></li>
+            <li><a href="{{ url_for('projects.list') }}" {% if request.endpoint and request.endpoint.startswith('projects.') %}class="active"{% endif %}>Projects</a></li>
+            <li><a href="{{ url_for('followups.list') }}" {% if request.endpoint and request.endpoint.startswith('followups.') %}class="active"{% endif %}>Follow-ups</a></li>
+            <li><a href="{{ url_for('export.export_csv') }}">Export CSV</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

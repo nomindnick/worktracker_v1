@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}New Status Update - Legal Worklist{% endblock %}
+
+{% block content %}
+<div class="update-form">
+    <h1>Add Status Update</h1>
+
+    <form method="post" class="form">
+        <div class="form-group">
+            <label for="project_id">Project *</label>
+            <select id="project_id" name="project_id" required>
+                <option value="">Select a project...</option>
+                <!-- Projects will be populated here -->
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">Status Update *</label>
+            <textarea id="notes" name="notes" rows="6" required
+                      placeholder="What did you do? Where does it stand? What's next?"></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Update</button>
+            <a href="{{ url_for('dashboard.index') }}" class="btn">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
