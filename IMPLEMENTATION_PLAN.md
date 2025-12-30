@@ -26,7 +26,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 
 | Phase | Status | Sprints Completed |
 |-------|--------|-------------------|
-| Phase 1: Foundation | In Progress | 4/5 |
+| Phase 1: Foundation | Complete | 5/5 |
 | Phase 2: Status Updates | Not Started | 0/2 |
 | Phase 3: Follow-ups | Not Started | 0/3 |
 | Phase 4: Dashboard | Not Started | 0/2 |
@@ -40,7 +40,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 - [x] Sprint 1.2: Database models and initialization
 - [x] Sprint 1.3: Project routes (Create/List)
 - [x] Sprint 1.4: Project routes (Detail/Edit/Archive)
-- [ ] Sprint 1.5: Templates and styling
+- [x] Sprint 1.5: Templates and styling
 
 #### Phase 2: Status Updates
 - [ ] Sprint 2.1: Status update routes and form
@@ -76,6 +76,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-30 | 1.2 | Database models and initialization complete - added 6 indexes to models.py (status, internal_deadline, due_date, completed, project_id, created_at), recreated database with indexes | All verification criteria met: flask init-db works, all 3 tables exist with correct columns, all 6 indexes created |
 | 2025-12-30 | 1.3 | Project routes (Create/List) complete - implemented POST /projects handler with form parsing, date conversion, and optional initial status update creation | All verification criteria met: GET /projects returns 200, GET /projects/new shows form, POST creates project in database |
 | 2025-12-30 | 1.4 | Project routes (Detail/Edit/Archive) complete - implemented POST handlers for edit (update all fields) and archive (set status='archived') | All verification criteria met: detail/edit pages return 200, edit POST updates project, archive removes from active list, invalid ID returns 404 |
+| 2025-12-30 | 1.5 | Templates and styling verified complete - all templates (base.html, list.html, detail.html, form.html) and CSS (style.css, 395 lines) were created during earlier sprints | All verification criteria met: navigation renders on all pages, forms are styled, table displays correctly, priority colors work (high=red, medium=yellow, low=green). **Phase 1 Foundation complete.** |
 
 ---
 
