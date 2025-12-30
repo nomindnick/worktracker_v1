@@ -1,5 +1,107 @@
 # Legal Worklist Application — Implementation Plan
 
+---
+
+## Instructions for Claude Code
+
+**IMPORTANT:** After completing each sprint, you MUST update this document:
+
+1. Mark the completed sprint checkbox as `[x]`
+2. Add a completion entry in the **Progress Log** section with:
+   - Date completed
+   - Sprint ID
+   - Brief summary of what was done
+   - Any decisions made or deviations from the plan
+   - Any issues encountered and how they were resolved
+3. If you created files not listed in the plan, add them to the **Files Created** section
+4. If you made architectural decisions, document them in **Decisions Log**
+
+This ensures future Claude Code sessions understand what has been done and can continue work seamlessly.
+
+---
+
+## Progress Tracking
+
+### Overall Status
+
+| Phase | Status | Sprints Completed |
+|-------|--------|-------------------|
+| Phase 1: Foundation | In Progress | 3/5 |
+| Phase 2: Status Updates | Not Started | 0/2 |
+| Phase 3: Follow-ups | Not Started | 0/3 |
+| Phase 4: Dashboard | Not Started | 0/2 |
+| Phase 5: Export & Archive | Not Started | 0/2 |
+| Phase 6: Polish | Not Started | 0/3 |
+
+### Sprint Checklist
+
+#### Phase 1: Foundation
+- [x] Sprint 1.1: Project setup
+- [x] Sprint 1.2: Database models and initialization
+- [x] Sprint 1.3: Project routes (Create/List)
+- [ ] Sprint 1.4: Project routes (Detail/Edit/Archive)
+- [ ] Sprint 1.5: Templates and styling
+
+#### Phase 2: Status Updates
+- [ ] Sprint 2.1: Status update routes and form
+- [ ] Sprint 2.2: Integrate into project views
+
+#### Phase 3: Follow-ups
+- [ ] Sprint 3.1: Follow-up routes (Create/List)
+- [ ] Sprint 3.2: Follow-up routes (Complete/Snooze) and form
+- [ ] Sprint 3.3: Integrate into project views
+
+#### Phase 4: Dashboard
+- [ ] Sprint 4.1: Dashboard route and query logic
+- [ ] Sprint 4.2: Dashboard template and styling
+
+#### Phase 5: Export & Archive
+- [ ] Sprint 5.1: CSV export functionality
+- [ ] Sprint 5.2: Archived projects view
+
+#### Phase 6: Polish
+- [ ] Sprint 6.1: Filtering and sorting
+- [ ] Sprint 6.2: Form validation and flash messages
+- [ ] Sprint 6.3: Confirmation dialogs and responsiveness
+
+---
+
+## Progress Log
+
+<!-- Add entries here after completing each sprint -->
+
+| Date | Sprint | Summary | Decisions/Notes |
+|------|--------|---------|-----------------|
+| 2025-12-30 | 1.1 | Project setup complete - directory structure, venv, requirements.txt, config.py, run.py all in place | Database models, routes, and templates also partially created (ahead of schedule) |
+| 2025-12-30 | 1.2 | Database models and initialization complete - added 6 indexes to models.py (status, internal_deadline, due_date, completed, project_id, created_at), recreated database with indexes | All verification criteria met: flask init-db works, all 3 tables exist with correct columns, all 6 indexes created |
+| 2025-12-30 | 1.3 | Project routes (Create/List) complete - implemented POST /projects handler with form parsing, date conversion, and optional initial status update creation | All verification criteria met: GET /projects returns 200, GET /projects/new shows form, POST creates project in database |
+
+---
+
+## Files Created
+
+<!-- Track files created during implementation -->
+
+| File | Sprint | Purpose |
+|------|--------|---------|
+| requirements.txt | 1.1 | Python dependencies |
+| config.py | 1.1 | Database and Flask configuration |
+| run.py | 1.1 | Application entry point |
+| app/__init__.py | 1.2 | Flask app factory with init-db CLI command |
+| app/models.py | 1.2 | SQLAlchemy models (Project, FollowUp, StatusUpdate) with indexes |
+
+---
+
+## Decisions Log
+
+<!-- Document architectural decisions and deviations from the plan -->
+
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| — | — | No decisions logged yet |
+
+---
+
 ## Tech Stack
 
 ### Backend
@@ -121,31 +223,110 @@ CREATE INDEX idx_status_updates_created ON status_updates(created_at);
 
 ---
 
-## Implementation Phases
+## Implementation Phases & Sprints
 
 ### Phase 1: Foundation
 
 **Goal:** Runnable Flask app with database, basic CRUD for projects.
 
+#### Sprint 1.1: Project Setup
+
 **Tasks:**
+1. Create project directory structure as defined above
+2. Set up virtual environment
+3. Create `requirements.txt`:
+   ```
+   flask>=3.0
+   flask-sqlalchemy>=3.1
+   python-dateutil>=2.8
+   ```
+4. Create `config.py` with database configuration
+5. Create `run.py` entry point
 
-1. Set up project structure and virtual environment
-2. Create Flask app factory with configuration
-3. Implement SQLAlchemy models (Project, FollowUp, StatusUpdate)
-4. Create database initialization script
-5. Build project routes:
-   - GET /projects — List all active projects
-   - GET /projects/new — New project form
-   - POST /projects — Create project
-   - GET /projects/<id> — Project detail
-   - GET /projects/<id>/edit — Edit project form
-   - POST /projects/<id> — Update project
-   - POST /projects/<id>/archive — Archive project
-6. Create base HTML template with navigation
-7. Build project list and form templates
-8. Add basic CSS styling
+**Verification:**
+- [ ] Can activate virtual environment
+- [ ] Can install dependencies with `pip install -r requirements.txt`
+- [ ] Project structure matches plan
 
-**Deliverable:** Can create, view, edit, and archive projects through the web interface.
+---
+
+#### Sprint 1.2: Database Models and Initialization
+
+**Tasks:**
+1. Create `app/__init__.py` with Flask app factory
+2. Create `app/models.py` with SQLAlchemy models:
+   - Project model with all fields from schema
+   - FollowUp model with foreign key to Project
+   - StatusUpdate model with foreign key to Project
+3. Add `flask init-db` CLI command to create tables
+4. Create `data/` directory (add to .gitignore)
+
+**Verification:**
+- [ ] `flask init-db` creates `data/worklist.db`
+- [ ] Database has all three tables with correct columns
+- [ ] Indexes are created
+
+---
+
+#### Sprint 1.3: Project Routes (Create/List)
+
+**Tasks:**
+1. Create `app/routes/__init__.py`
+2. Create `app/routes/projects.py` with:
+   - `GET /projects` — List all active projects
+   - `GET /projects/new` — New project form
+   - `POST /projects` — Create project
+3. Register blueprint in app factory
+
+**Verification:**
+- [ ] `/projects` returns 200 (empty list OK)
+- [ ] `/projects/new` shows a form
+- [ ] Form submission creates project in database
+
+---
+
+#### Sprint 1.4: Project Routes (Detail/Edit/Archive)
+
+**Tasks:**
+1. Add to `app/routes/projects.py`:
+   - `GET /projects/<id>` — Project detail view
+   - `GET /projects/<id>/edit` — Edit project form
+   - `POST /projects/<id>` — Update project
+   - `POST /projects/<id>/archive` — Archive project
+2. Handle 404 for non-existent projects
+
+**Verification:**
+- [ ] Can view project detail page
+- [ ] Can edit project and see changes saved
+- [ ] Archive removes project from active list
+- [ ] Invalid project ID shows 404
+
+---
+
+#### Sprint 1.5: Templates and Styling
+
+**Tasks:**
+1. Create `app/templates/base.html` with:
+   - HTML5 structure
+   - Navigation (Dashboard, Projects, Export)
+   - Content block
+   - CSS link
+2. Create `app/templates/projects/list.html`
+3. Create `app/templates/projects/detail.html`
+4. Create `app/templates/projects/form.html` (for new and edit)
+5. Create `app/static/css/style.css` with basic styling:
+   - Clean typography
+   - Table styling
+   - Form styling
+   - Priority color coding (high=red, medium=yellow, low=green)
+
+**Verification:**
+- [ ] All pages render with consistent navigation
+- [ ] Forms are usable and styled
+- [ ] Project list displays nicely as table
+- [ ] Priority colors display correctly
+
+**Phase 1 Deliverable:** Can create, view, edit, and archive projects through the web interface.
 
 ---
 
@@ -153,18 +334,42 @@ CREATE INDEX idx_status_updates_created ON status_updates(created_at);
 
 **Goal:** Add status update logging to projects.
 
+#### Sprint 2.1: Status Update Routes and Form
+
 **Tasks:**
+1. Create `app/routes/updates.py` with:
+   - `GET /updates/new` — New update form (with project selector dropdown)
+   - `GET /projects/<id>/updates/new` — New update form (project pre-selected)
+   - `POST /updates` — Create update
+2. Create `app/templates/updates/form.html`
+3. Register blueprint
 
-1. Build status update routes:
-   - GET /updates/new — New update form (with project selector)
-   - GET /projects/<id>/updates/new — New update form (project pre-selected)
-   - POST /updates — Create update
-2. Create status update form template
-3. Add status update log to project detail view
-4. Display "last updated" and "days since update" on project list
-5. Add quick "Add Update" button to project list rows
+**Verification:**
+- [ ] Can access standalone update form at `/updates/new`
+- [ ] Can access project-specific form at `/projects/<id>/updates/new`
+- [ ] Form submission creates status update in database
 
-**Deliverable:** Can log status updates from dashboard or project detail, see update history on project detail.
+---
+
+#### Sprint 2.2: Integrate Updates into Project Views
+
+**Tasks:**
+1. Add status update history to `projects/detail.html`:
+   - List updates newest-first
+   - Show timestamp and notes
+2. Update `projects/list.html`:
+   - Add "Last Updated" column with date
+   - Add "Days Since Update" column with staleness indicator
+   - Add quick "Add Update" button/link per row
+3. Implement staleness calculation helper function
+
+**Verification:**
+- [ ] Project detail shows all status updates
+- [ ] Project list shows last update date
+- [ ] Days since update calculates correctly
+- [ ] Quick add button navigates to update form
+
+**Phase 2 Deliverable:** Can log status updates from dashboard or project detail, see update history on project detail.
 
 ---
 
@@ -172,20 +377,63 @@ CREATE INDEX idx_status_updates_created ON status_updates(created_at);
 
 **Goal:** Full follow-up management.
 
+#### Sprint 3.1: Follow-up Routes (Create/List)
+
 **Tasks:**
+1. Create `app/routes/followups.py` with:
+   - `GET /followups` — List all pending follow-ups (grouped by due date)
+   - `GET /followups/new` — New follow-up form
+   - `GET /projects/<id>/followups/new` — New follow-up (project pre-selected)
+   - `POST /followups` — Create follow-up
+2. Register blueprint
 
-1. Build follow-up routes:
-   - GET /followups — List all pending follow-ups (optional standalone view)
-   - GET /followups/new — New follow-up form
-   - GET /projects/<id>/followups/new — New follow-up (project pre-selected)
-   - POST /followups — Create follow-up
-   - POST /followups/<id>/complete — Mark complete
-   - POST /followups/<id>/snooze — Snooze (push due date)
-2. Create follow-up form template with quick-set date buttons
-3. Add follow-up list to project detail view
-4. Display pending follow-ups on project list
+**Verification:**
+- [ ] Can view list of all pending follow-ups
+- [ ] Can create follow-up from standalone form
+- [ ] Can create follow-up from project context
 
-**Deliverable:** Can create, view, complete, and snooze follow-ups.
+---
+
+#### Sprint 3.2: Follow-up Routes (Complete/Snooze) and Form
+
+**Tasks:**
+1. Add to `app/routes/followups.py`:
+   - `POST /followups/<id>/complete` — Mark complete (set completed=1, completed_at)
+   - `POST /followups/<id>/snooze` — Snooze (accept days parameter, update due_date)
+2. Create `app/templates/followups/form.html` with:
+   - Project selector (or hidden field if pre-selected)
+   - Target type dropdown (associate, client, opposing_counsel, other)
+   - Target name text field
+   - Due date picker
+   - Quick-set date buttons: Tomorrow, +3 days, +1 week, +2 weeks
+   - Notes textarea
+
+**Verification:**
+- [ ] Can mark follow-up complete
+- [ ] Complete follow-up disappears from pending list
+- [ ] Snooze updates due date correctly
+- [ ] Quick-set buttons work in form
+
+---
+
+#### Sprint 3.3: Integrate Follow-ups into Project Views
+
+**Tasks:**
+1. Add follow-up list to `projects/detail.html`:
+   - Pending follow-ups (with complete/snooze buttons)
+   - Completed follow-ups (collapsed or separate section)
+2. Update `projects/list.html`:
+   - Show pending follow-up count
+   - Show next follow-up date
+3. Add "Add Follow-up" button to project detail
+
+**Verification:**
+- [ ] Project detail shows all follow-ups
+- [ ] Can complete/snooze directly from project detail
+- [ ] Project list shows follow-up summary
+- [ ] Add button works
+
+**Phase 3 Deliverable:** Can create, view, complete, and snooze follow-ups.
 
 ---
 
@@ -193,41 +441,99 @@ CREATE INDEX idx_status_updates_created ON status_updates(created_at);
 
 **Goal:** The "Today" view that surfaces what needs attention.
 
+#### Sprint 4.1: Dashboard Route and Query Logic
+
 **Tasks:**
-
-1. Build dashboard route (GET / or GET /dashboard)
-2. Query logic for:
+1. Create `app/routes/dashboard.py` with `GET /` or `GET /dashboard`
+2. Implement query logic for:
    - Follow-ups due today
-   - Overdue follow-ups
+   - Overdue follow-ups (past due date, not completed)
    - Projects with deadlines in next 7 days
-   - Dusty projects (7-13 days = warning, 14+ days = critical)
-3. Create dashboard template with sections
-4. Add color coding (CSS classes for urgency levels)
-5. Quick action buttons (complete follow-up, add update, view project)
+   - Dusty projects (no update in 7+ days):
+     - Warning level: 7-13 days
+     - Critical level: 14+ days
+3. Use efficient subqueries for staleness calculation
 
-**Deliverable:** Landing page shows actionable items at a glance.
+**Verification:**
+- [ ] Route returns correct data for each category
+- [ ] Staleness calculation is efficient (single query)
+- [ ] Edge cases handled (no updates, just created, etc.)
 
 ---
 
-### Phase 5: Export and Archive
+#### Sprint 4.2: Dashboard Template and Styling
+
+**Tasks:**
+1. Create `app/templates/dashboard.html` with sections:
+   - Overdue follow-ups (red section)
+   - Due today (yellow section)
+   - Upcoming deadlines (blue section)
+   - Dusty projects (orange/red gradient by severity)
+2. Add CSS classes for urgency levels:
+   - `.urgency-critical` (red)
+   - `.urgency-warning` (yellow/orange)
+   - `.urgency-info` (blue)
+3. Add quick action buttons:
+   - Complete follow-up (inline)
+   - Add update (link to form)
+   - View project (link)
+4. Set dashboard as home page (`/`)
+
+**Verification:**
+- [ ] Dashboard is the landing page
+- [ ] All sections render correctly
+- [ ] Color coding works
+- [ ] Quick actions function properly
+
+**Phase 4 Deliverable:** Landing page shows actionable items at a glance.
+
+---
+
+### Phase 5: Export & Archive
 
 **Goal:** CSV export and archived projects view.
 
+#### Sprint 5.1: CSV Export Functionality
+
 **Tasks:**
+1. Create `app/routes/export.py` with `GET /export`
+2. Generate CSV with columns:
+   - Client, Project, Matter #
+   - Hard Deadline, Internal Deadline
+   - Attorneys, Priority
+   - Current Status (most recent update notes)
+   - Next Follow-up (date of next pending follow-up)
+3. Return as file download with filename `worklist_YYYY-MM-DD.csv`
+4. Create `exports/` directory for reference (actual download goes to browser)
 
-1. Build export route (GET /export)
-2. Generate CSV with active projects:
-   - Client name, project name, matter number
-   - Hard deadline, internal deadline
-   - Assigned attorneys, priority
-   - Most recent status update notes
-   - Next follow-up date
-3. Return CSV as file download
-4. Build archived projects route (GET /archived)
-5. Create archived projects list template
-6. Add actual_hours prompt to archive flow
+**Verification:**
+- [ ] CSV downloads with correct filename
+- [ ] All active projects included
+- [ ] Archived projects excluded
+- [ ] All columns populated correctly
 
-**Deliverable:** Can export active worklist to CSV, view archived projects.
+---
+
+#### Sprint 5.2: Archived Projects View
+
+**Tasks:**
+1. Add `GET /archived` route to projects.py (or separate file)
+2. Create `app/templates/archived.html`:
+   - List archived projects
+   - Show actual hours vs estimated
+   - Option to unarchive (reactivate)
+3. Update archive flow:
+   - When archiving, prompt for actual_hours
+   - Could be modal or intermediate page
+4. Add "Archived" link to navigation
+
+**Verification:**
+- [ ] Archived projects visible at `/archived`
+- [ ] Archive prompts for actual hours
+- [ ] Can unarchive a project
+- [ ] Navigation includes archived link
+
+**Phase 5 Deliverable:** Can export active worklist to CSV, view archived projects.
 
 ---
 
@@ -235,19 +541,67 @@ CREATE INDEX idx_status_updates_created ON status_updates(created_at);
 
 **Goal:** Refinements for daily usability.
 
+#### Sprint 6.1: Filtering and Sorting
+
 **Tasks:**
+1. Add filter controls to project list:
+   - Filter by attorney (dropdown from existing values)
+   - Filter by priority (high/medium/low)
+   - Filter by assigner
+2. Add sorting options:
+   - Sort by deadline (default)
+   - Sort by priority
+   - Sort by staleness (days since update)
+3. Preserve filter/sort in URL query parameters
 
-1. Filtering and sorting on project list:
-   - Filter by attorney, priority, assigner
-   - Sort by deadline, priority, staleness
-2. Search/filter for project selector dropdowns
-3. Form validation and error messages
-4. Confirmation dialogs for destructive actions
-5. Improve mobile responsiveness (low priority but nice to have)
-6. Add flash messages for success/error feedback
-7. Keyboard shortcuts for common actions (stretch)
+**Verification:**
+- [ ] Filters work correctly
+- [ ] Sorting works correctly
+- [ ] Can combine filter and sort
+- [ ] URL reflects current filter/sort state
 
-**Deliverable:** Polished, usable application ready for daily use.
+---
+
+#### Sprint 6.2: Form Validation and Flash Messages
+
+**Tasks:**
+1. Add server-side form validation:
+   - Required fields checked
+   - Date format validation
+   - Reasonable value ranges
+2. Add Flask flash messages:
+   - Success: "Project created", "Update saved", etc.
+   - Error: Validation failures
+3. Display flash messages in base template
+4. Add client-side validation (HTML5 required, pattern attributes)
+
+**Verification:**
+- [ ] Cannot submit invalid forms
+- [ ] Error messages display clearly
+- [ ] Success messages confirm actions
+- [ ] Client-side validation provides immediate feedback
+
+---
+
+#### Sprint 6.3: Confirmation Dialogs and Responsiveness
+
+**Tasks:**
+1. Add confirmation dialogs for destructive actions:
+   - Archive project
+   - Complete follow-up
+   - (Use simple JavaScript confirm() or modal)
+2. Improve mobile responsiveness:
+   - Responsive tables (horizontal scroll or card view)
+   - Touch-friendly buttons
+   - Readable on small screens
+3. Create `app/static/js/app.js` for any JavaScript needs
+
+**Verification:**
+- [ ] Archive asks for confirmation
+- [ ] Application usable on mobile device
+- [ ] Tables don't break on small screens
+
+**Phase 6 Deliverable:** Polished, usable application ready for daily use.
 
 ---
 
@@ -304,21 +658,21 @@ from flask import Response
 def export_csv():
     output = StringIO()
     writer = csv.writer(output)
-    
+
     # Header row
     writer.writerow([
-        'Client', 'Project', 'Matter #', 'Hard Deadline', 
-        'Internal Deadline', 'Attorneys', 'Priority', 
+        'Client', 'Project', 'Matter #', 'Hard Deadline',
+        'Internal Deadline', 'Attorneys', 'Priority',
         'Current Status', 'Next Follow-up'
     ])
-    
+
     # Data rows
     for project in Project.query.filter_by(status='active').all():
         latest_update = StatusUpdate.query.filter_by(project_id=project.id)\
             .order_by(StatusUpdate.created_at.desc()).first()
         next_followup = FollowUp.query.filter_by(project_id=project.id, completed=False)\
             .order_by(FollowUp.due_date.asc()).first()
-        
+
         writer.writerow([
             project.client_name,
             project.project_name,
@@ -330,7 +684,7 @@ def export_csv():
             latest_update.notes if latest_update else '',
             next_followup.due_date.isoformat() if next_followup else ''
         ])
-    
+
     return Response(
         output.getvalue(),
         mimetype='text/csv',
@@ -441,7 +795,7 @@ When adding natural language input:
 1. **Input parsing** — Route natural language through local LLM to extract:
    - Intent (new project, update, follow-up, query)
    - Entities (client name, deadline, attorney names, etc.)
-   
+
 2. **Confidence handling** — If LLM confidence is low, fall back to form with pre-filled guesses
 
 3. **Query interface** — "What's assigned to Rebecca?" → SQL query → formatted response
