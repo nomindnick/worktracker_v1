@@ -18,6 +18,8 @@
                 <th>Matter #</th>
                 <th>Internal Deadline</th>
                 <th>Priority</th>
+                <th>Pending Follow-ups</th>
+                <th>Next Follow-up</th>
                 <th>Last Updated</th>
                 <th>Days Stale</th>
                 <th>Actions</th>
@@ -31,6 +33,8 @@
                 <td>{{ project.matter_number or '-' }}</td>
                 <td>{{ project.internal_deadline }}</td>
                 <td><span class="priority priority-{{ project.priority }}">{{ project.priority }}</span></td>
+                <td>{{ project.pending_followup_count }}</td>
+                <td>{{ project.next_followup.due_date if project.next_followup else '-' }}</td>
                 <td>{{ project.last_update_date.strftime('%Y-%m-%d') if project.last_update_date else '-' }}</td>
                 <td><span class="staleness staleness-{{ project.staleness_level }}">{{ project.days_since_update }}d</span></td>
                 <td>

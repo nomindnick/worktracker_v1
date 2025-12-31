@@ -205,3 +205,157 @@ class TestProjectStalenessProperties:
         sample_project.created_at = datetime.utcnow() - timedelta(days=14)
         db_session.commit()
         assert sample_project.staleness_level == 'critical'
+
+
+class TestProjectFollowupMethods:
+    """Test Project follow-up query methods."""
+
+    def test_get_pending_followups(self, sample_project, db_session):
+        """get_pending_followups returns all pending follow-ups ordered by due_date."""
+        from app.models import FollowUp
+
+        # Create multiple follow-ups with different due dates
+        followup1 = FollowUp(
+            project_id=sample_project.id,
+            target_type='associate',
+            target_name='Person A',
+            due_date=date.today() + timedelta(days=3)
+        )
+        followup2 = FollowUp(
+            project_id=sample_project.id,
+            target_type='client',
+            target_name='Person B',
+            due_date=date.today() + timedelta(days=1)
+        )
+        followup3 = FollowUp(
+            project_id=sample_project.id,
+            target_type='other',
+            target_name='Person C',
+            due_date=date.today() + timedelta(days=2),
+            completed=True
+        )
+        db_session.add_all([followup1, followup2, followup3])
+        db_session.commit()
+
+        pending = sample_project.get_pending_followups()
+        assert len(pending) == 2
+        assert pending[0].target_name == 'Person B'  # earliest due_date first
+        assert pending[1].target_name == 'Person A'
+
+    def test_get_pending_followups_empty(self, sample_project, db_session):
+        """get_pending_followups returns empty list when no pending follow-ups."""
+        pending = sample_project.get_pending_followups()
+        assert pending == []
+
+    def test_get_completed_followups(self, sample_project, db_session):
+        """get_completed_followups returns all completed follow-ups ordered by completed_at desc."""
+        from app.models import FollowUp
+
+        # Create multiple completed follow-ups
+        followup1 = FollowUp(
+            project_id=sample_project.id,
+            target_type='associate',
+            target_name='Person A',
+            due_date=date.today(),
+            completed=True,
+            completed_at=datetime.utcnow() - timedelta(hours=2)
+        )
+        followup2 = FollowUp(
+            project_id=sample_project.id,
+            target_type='client',
+            target_name='Person B',
+            due_date=date.today(),
+            completed=True,
+            completed_at=datetime.utcnow() - timedelta(hours=1)
+        )
+        followup3 = FollowUp(
+            project_id=sample_project.id,
+            target_type='other',
+            target_name='Person C',
+            due_date=date.today(),
+            completed=False
+        )
+        db_session.add_all([followup1, followup2, followup3])
+        db_session.commit()
+
+        completed = sample_project.get_completed_followups()
+        assert len(completed) == 2
+        assert completed[0].target_name == 'Person B'  # most recent completion first
+        assert completed[1].target_name == 'Person A'
+
+    def test_get_completed_followups_empty(self, sample_project, db_session):
+        """get_completed_followups returns empty list when no completed follow-ups."""
+        completed = sample_project.get_completed_followups()
+        assert completed == []
+
+    def test_pending_followup_count(self, sample_project, db_session):
+        """pending_followup_count returns count of pending follow-ups."""
+        from app.models import FollowUp
+
+        assert sample_project.pending_followup_count == 0
+
+        followup1 = FollowUp(
+            project_id=sample_project.id,
+            target_type='associate',
+            target_name='Person A',
+            due_date=date.today()
+        )
+        followup2 = FollowUp(
+            project_id=sample_project.id,
+            target_type='client',
+            target_name='Person B',
+            due_date=date.today(),
+            completed=True
+        )
+        db_session.add_all([followup1, followup2])
+        db_session.commit()
+
+        assert sample_project.pending_followup_count == 1
+
+    def test_next_followup(self, sample_project, db_session):
+        """next_followup returns the earliest pending follow-up."""
+        from app.models import FollowUp
+
+        assert sample_project.next_followup is None
+
+        followup1 = FollowUp(
+            project_id=sample_project.id,
+            target_type='associate',
+            target_name='Person A',
+            due_date=date.today() + timedelta(days=3)
+        )
+        followup2 = FollowUp(
+            project_id=sample_project.id,
+            target_type='client',
+            target_name='Person B',
+            due_date=date.today() + timedelta(days=1)
+        )
+        db_session.add_all([followup1, followup2])
+        db_session.commit()
+
+        next_followup = sample_project.next_followup
+        assert next_followup is not None
+        assert next_followup.target_name == 'Person B'
+
+    def test_next_followup_ignores_completed(self, sample_project, db_session):
+        """next_followup ignores completed follow-ups."""
+        from app.models import FollowUp
+
+        followup1 = FollowUp(
+            project_id=sample_project.id,
+            target_type='associate',
+            target_name='Person A',
+            due_date=date.today(),
+            completed=True
+        )
+        followup2 = FollowUp(
+            project_id=sample_project.id,
+            target_type='client',
+            target_name='Person B',
+            due_date=date.today() + timedelta(days=2)
+        )
+        db_session.add_all([followup1, followup2])
+        db_session.commit()
+
+        next_followup = sample_project.next_followup
+        assert next_followup.target_name == 'Person B'

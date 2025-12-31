@@ -52,6 +52,27 @@ class Project(db.Model):
             return 'warning'
         return 'ok'
 
+    def get_pending_followups(self):
+        """Get all pending follow-ups ordered by due_date ascending."""
+        from app.models import FollowUp
+        return self.followups.filter_by(completed=False).order_by(FollowUp.due_date.asc()).all()
+
+    def get_completed_followups(self):
+        """Get all completed follow-ups ordered by completed_at descending (newest first)."""
+        from app.models import FollowUp
+        return self.followups.filter_by(completed=True).order_by(FollowUp.completed_at.desc()).all()
+
+    @property
+    def pending_followup_count(self):
+        """Return count of pending follow-ups."""
+        return self.followups.filter_by(completed=False).count()
+
+    @property
+    def next_followup(self):
+        """Return the next pending follow-up (earliest due_date), or None."""
+        from app.models import FollowUp
+        return self.followups.filter_by(completed=False).order_by(FollowUp.due_date.asc()).first()
+
     def __repr__(self):
         return f'<Project {self.client_name}: {self.project_name}>'
 

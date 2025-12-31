@@ -65,7 +65,57 @@
             <h2>Follow-ups</h2>
             <a href="{{ url_for('followups.new') }}?project_id={{ project.id }}" class="btn btn-small">Add Follow-up</a>
         </div>
-        <p class="placeholder">Follow-ups will appear here.</p>
+
+        <h3>Pending</h3>
+        {% set pending = project.get_pending_followups() %}
+        {% if pending %}
+        <ul class="followup-list">
+            {% for followup in pending %}
+            <li class="followup-item">
+                <div class="followup-info">
+                    <span class="followup-target">{{ followup.target_name }}</span>
+                    <span class="followup-type">({{ followup.target_type }})</span>
+                    <span class="followup-due">Due: {{ followup.due_date }}</span>
+                    {% if followup.notes %}
+                    <p class="followup-notes">{{ followup.notes }}</p>
+                    {% endif %}
+                </div>
+                <div class="followup-actions">
+                    <form action="{{ url_for('followups.complete', id=followup.id) }}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-small btn-success">Complete</button>
+                    </form>
+                    <form action="{{ url_for('followups.snooze', id=followup.id) }}" method="post" style="display: inline;">
+                        <input type="number" name="days" value="1" min="1" max="365" style="width: 50px;">
+                        <button type="submit" class="btn btn-small">Snooze</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-state">No pending follow-ups.</p>
+        {% endif %}
+
+        <h3>Completed</h3>
+        {% set completed = project.get_completed_followups() %}
+        {% if completed %}
+        <ul class="followup-list">
+            {% for followup in completed %}
+            <li class="followup-item followup-completed">
+                <div class="followup-info">
+                    <span class="followup-target">{{ followup.target_name }}</span>
+                    <span class="followup-type">({{ followup.target_type }})</span>
+                    <span class="followup-completed-at">Completed: {{ followup.completed_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    {% if followup.notes %}
+                    <p class="followup-notes">{{ followup.notes }}</p>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-state">No completed follow-ups.</p>
+        {% endif %}
     </section>
 </div>
 {% endblock %}
