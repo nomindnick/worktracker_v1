@@ -130,3 +130,11 @@ def updates_new(id):
     # Verify project exists
     Project.query.get_or_404(id)
     return redirect(url_for('updates.new', project_id=id))
+
+
+@bp.route('/<int:id>/followups/new')
+def followups_new(id):
+    """Redirect to follow-up form with project pre-selected."""
+    # Verify project exists
+    Project.query.get_or_404(id)
+    return redirect(url_for('followups.new', project_id=id))

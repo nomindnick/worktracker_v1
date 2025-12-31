@@ -35,7 +35,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 |-------|--------|-------------------|
 | Phase 1: Foundation | Complete | 5/5 |
 | Phase 2: Status Updates | Complete | 2/2 |
-| Phase 3: Follow-ups | Not Started | 0/3 |
+| Phase 3: Follow-ups | In Progress | 1/3 |
 | Phase 4: Dashboard | Not Started | 0/2 |
 | Phase 5: Export & Archive | Not Started | 0/2 |
 | Phase 6: Polish | Not Started | 0/3 |
@@ -54,7 +54,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 - [x] Sprint 2.2: Integrate into project views
 
 #### Phase 3: Follow-ups
-- [ ] Sprint 3.1: Follow-up routes (Create/List)
+- [x] Sprint 3.1: Follow-up routes (Create/List)
 - [ ] Sprint 3.2: Follow-up routes (Complete/Snooze) and form
 - [ ] Sprint 3.3: Integrate into project views
 
@@ -87,6 +87,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-30 | Testing | Testing infrastructure complete - 88 tests with 100% code coverage. Added pytest, pytest-cov, pytest-flask to requirements.txt. Created pyproject.toml with coverage config. Test files for config, app factory, models, and all routes. | 100% coverage enforced via fail_under=100. In-memory SQLite for fast tests. Fixtures for app, client, db_session, sample data. |
 | 2025-12-30 | 2.1 | Status update routes and form complete - GET /updates/new with project dropdown, POST /updates/new creates updates, GET /projects/<id>/updates/new redirects with pre-selection | All verification criteria met: standalone form works, project dropdown populated, pre-selection via query param, POST creates update and redirects. 100 tests, 100% coverage. |
 | 2025-12-30 | 2.2 | Integrated status updates into project views - added staleness properties to Project model (last_update_date, days_since_update, staleness_level), updated detail template to show status update history (newest first), updated list template with Last Updated column, Days Stale badge with color coding, and Add Update button | All verification criteria met: detail shows updates, list shows staleness columns with color badges (green/yellow/red), quick add button works. 111 tests, 100% coverage. **Phase 2 Status Updates complete.** |
+| 2025-12-30 | 3.1 | Follow-up routes (Create/List) complete - implemented GET/POST /followups/new with project dropdown, project pre-selection via query param, form validation, and database creation. Added GET /projects/<id>/followups/new redirect route. Updated form.html template with project dropdown. | All verification criteria met: can view pending followups list, create followup from standalone form, create followup from project context with pre-selection. 123 tests, 100% coverage. |
 
 ---
 
