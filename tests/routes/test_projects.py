@@ -720,3 +720,386 @@ class TestArchivedList:
         response = client.get('/projects/archived')
 
         assert b'No archived projects' in response.data
+
+
+class TestProjectListFiltering:
+    """Test filtering functionality on GET /projects/ route."""
+
+    def test_list_filter_by_priority_high(self, client, db_session):
+        """Filter by priority=high shows only high priority projects."""
+        from app.models import Project
+
+        # Create projects with different priorities
+        high = Project(client_name='High Client', project_name='High Project',
+                      internal_deadline=date.today(), assigner='Self',
+                      assigned_attorneys='Me', priority='high')
+        low = Project(client_name='Low Client', project_name='Low Project',
+                     internal_deadline=date.today(), assigner='Self',
+                     assigned_attorneys='Me', priority='low')
+        db_session.add_all([high, low])
+        db_session.commit()
+
+        response = client.get('/projects/?priority=high')
+
+        assert b'High Client' in response.data
+        assert b'Low Client' not in response.data
+
+    def test_list_filter_by_priority_medium(self, client, db_session):
+        """Filter by priority=medium shows only medium priority projects."""
+        from app.models import Project
+
+        medium = Project(client_name='Medium Client', project_name='Medium Project',
+                        internal_deadline=date.today(), assigner='Self',
+                        assigned_attorneys='Me', priority='medium')
+        high = Project(client_name='High Client', project_name='High Project',
+                      internal_deadline=date.today(), assigner='Self',
+                      assigned_attorneys='Me', priority='high')
+        db_session.add_all([medium, high])
+        db_session.commit()
+
+        response = client.get('/projects/?priority=medium')
+
+        assert b'Medium Client' in response.data
+        assert b'High Client' not in response.data
+
+    def test_list_filter_by_priority_low(self, client, db_session):
+        """Filter by priority=low shows only low priority projects."""
+        from app.models import Project
+
+        low = Project(client_name='Low Client', project_name='Low Project',
+                     internal_deadline=date.today(), assigner='Self',
+                     assigned_attorneys='Me', priority='low')
+        high = Project(client_name='High Client', project_name='High Project',
+                      internal_deadline=date.today(), assigner='Self',
+                      assigned_attorneys='Me', priority='high')
+        db_session.add_all([low, high])
+        db_session.commit()
+
+        response = client.get('/projects/?priority=low')
+
+        assert b'Low Client' in response.data
+        assert b'High Client' not in response.data
+
+    def test_list_filter_by_attorney(self, client, db_session):
+        """Filter by attorney uses contains match."""
+        from app.models import Project
+
+        jones = Project(client_name='Jones Client', project_name='Jones Project',
+                       internal_deadline=date.today(), assigner='Self',
+                       assigned_attorneys='Smith, Jones', priority='medium')
+        smith = Project(client_name='Smith Client', project_name='Smith Project',
+                       internal_deadline=date.today(), assigner='Self',
+                       assigned_attorneys='Smith Only', priority='medium')
+        db_session.add_all([jones, smith])
+        db_session.commit()
+
+        response = client.get('/projects/?attorney=Jones')
+
+        assert b'Jones Client' in response.data
+        assert b'Smith Client' not in response.data
+
+    def test_list_filter_by_assigner(self, client, db_session):
+        """Filter by assigner uses exact match."""
+        from app.models import Project
+
+        partner = Project(client_name='Partner Client', project_name='Partner Project',
+                         internal_deadline=date.today(), assigner='Partner A',
+                         assigned_attorneys='Me', priority='medium')
+        self_assigned = Project(client_name='Self Client', project_name='Self Project',
+                               internal_deadline=date.today(), assigner='Self',
+                               assigned_attorneys='Me', priority='medium')
+        db_session.add_all([partner, self_assigned])
+        db_session.commit()
+
+        response = client.get('/projects/?assigner=Partner%20A')
+
+        assert b'Partner Client' in response.data
+        assert b'Self Client' not in response.data
+
+    def test_list_combined_filters(self, client, db_session):
+        """Multiple filters are ANDed together."""
+        from app.models import Project
+
+        match = Project(client_name='Match Client', project_name='Match Project',
+                       internal_deadline=date.today(), assigner='Partner',
+                       assigned_attorneys='Jones', priority='high')
+        wrong_priority = Project(client_name='Wrong Priority', project_name='WP Project',
+                                internal_deadline=date.today(), assigner='Partner',
+                                assigned_attorneys='Jones', priority='low')
+        wrong_attorney = Project(client_name='Wrong Attorney', project_name='WA Project',
+                                internal_deadline=date.today(), assigner='Partner',
+                                assigned_attorneys='Smith', priority='high')
+        db_session.add_all([match, wrong_priority, wrong_attorney])
+        db_session.commit()
+
+        response = client.get('/projects/?priority=high&attorney=Jones')
+
+        assert b'Match Client' in response.data
+        assert b'Wrong Priority' not in response.data
+        assert b'Wrong Attorney' not in response.data
+
+    def test_list_no_filters_shows_all(self, client, db_session):
+        """Empty filters return all active projects."""
+        from app.models import Project
+
+        p1 = Project(client_name='Client One', project_name='Project One',
+                    internal_deadline=date.today(), assigner='Self',
+                    assigned_attorneys='Me', priority='high')
+        p2 = Project(client_name='Client Two', project_name='Project Two',
+                    internal_deadline=date.today(), assigner='Self',
+                    assigned_attorneys='Me', priority='low')
+        db_session.add_all([p1, p2])
+        db_session.commit()
+
+        response = client.get('/projects/')
+
+        assert b'Client One' in response.data
+        assert b'Client Two' in response.data
+
+
+class TestProjectListSorting:
+    """Test sorting functionality on GET /projects/ route."""
+
+    def test_list_sort_by_deadline_asc(self, client, db_session):
+        """Sort by internal_deadline ascending (default)."""
+        from app.models import Project
+
+        later = Project(client_name='Later Client', project_name='Later Project',
+                       internal_deadline=date.today() + timedelta(days=30),
+                       assigner='Self', assigned_attorneys='Me', priority='medium')
+        earlier = Project(client_name='Earlier Client', project_name='Earlier Project',
+                         internal_deadline=date.today() + timedelta(days=5),
+                         assigner='Self', assigned_attorneys='Me', priority='medium')
+        db_session.add_all([later, earlier])
+        db_session.commit()
+
+        response = client.get('/projects/?sort_by=internal_deadline&sort_order=asc')
+
+        # Earlier should appear before Later in the response
+        earlier_pos = response.data.find(b'Earlier Client')
+        later_pos = response.data.find(b'Later Client')
+        assert earlier_pos < later_pos
+
+    def test_list_sort_by_deadline_desc(self, client, db_session):
+        """Sort by internal_deadline descending."""
+        from app.models import Project
+
+        later = Project(client_name='Later Client', project_name='Later Project',
+                       internal_deadline=date.today() + timedelta(days=30),
+                       assigner='Self', assigned_attorneys='Me', priority='medium')
+        earlier = Project(client_name='Earlier Client', project_name='Earlier Project',
+                         internal_deadline=date.today() + timedelta(days=5),
+                         assigner='Self', assigned_attorneys='Me', priority='medium')
+        db_session.add_all([later, earlier])
+        db_session.commit()
+
+        response = client.get('/projects/?sort_by=internal_deadline&sort_order=desc')
+
+        # Later should appear before Earlier in the response
+        earlier_pos = response.data.find(b'Earlier Client')
+        later_pos = response.data.find(b'Later Client')
+        assert later_pos < earlier_pos
+
+    def test_list_sort_by_priority_asc(self, client, db_session):
+        """Sort by priority ascending (high > medium > low)."""
+        from app.models import Project
+
+        high = Project(client_name='High Client', project_name='High Project',
+                      internal_deadline=date.today(), assigner='Self',
+                      assigned_attorneys='Me', priority='high')
+        low = Project(client_name='Low Client', project_name='Low Project',
+                     internal_deadline=date.today(), assigner='Self',
+                     assigned_attorneys='Me', priority='low')
+        medium = Project(client_name='Medium Client', project_name='Medium Project',
+                        internal_deadline=date.today(), assigner='Self',
+                        assigned_attorneys='Me', priority='medium')
+        db_session.add_all([low, high, medium])
+        db_session.commit()
+
+        response = client.get('/projects/?sort_by=priority&sort_order=asc')
+
+        # Should be ordered high, medium, low
+        high_pos = response.data.find(b'High Client')
+        medium_pos = response.data.find(b'Medium Client')
+        low_pos = response.data.find(b'Low Client')
+        assert high_pos < medium_pos < low_pos
+
+    def test_list_sort_by_priority_desc(self, client, db_session):
+        """Sort by priority descending (low > medium > high)."""
+        from app.models import Project
+
+        high = Project(client_name='High Client', project_name='High Project',
+                      internal_deadline=date.today(), assigner='Self',
+                      assigned_attorneys='Me', priority='high')
+        low = Project(client_name='Low Client', project_name='Low Project',
+                     internal_deadline=date.today(), assigner='Self',
+                     assigned_attorneys='Me', priority='low')
+        db_session.add_all([high, low])
+        db_session.commit()
+
+        response = client.get('/projects/?sort_by=priority&sort_order=desc')
+
+        # Low should appear before high
+        high_pos = response.data.find(b'High Client')
+        low_pos = response.data.find(b'Low Client')
+        assert low_pos < high_pos
+
+    def test_list_sort_by_staleness_desc(self, client, db_session):
+        """Sort by staleness descending (most stale first)."""
+        from app.models import Project, StatusUpdate
+        from datetime import datetime
+
+        # Create projects with different staleness
+        stale = Project(client_name='Stale Client', project_name='Stale Project',
+                       internal_deadline=date.today(), assigner='Self',
+                       assigned_attorneys='Me', priority='medium')
+        fresh = Project(client_name='Fresh Client', project_name='Fresh Project',
+                       internal_deadline=date.today(), assigner='Self',
+                       assigned_attorneys='Me', priority='medium')
+        db_session.add_all([stale, fresh])
+        db_session.flush()
+
+        # Add recent update to fresh project only
+        update = StatusUpdate(project_id=fresh.id, notes='Recent update')
+        db_session.add(update)
+        db_session.commit()
+
+        response = client.get('/projects/?sort_by=staleness&sort_order=desc')
+
+        # Stale (no updates) should appear before Fresh (has update)
+        stale_pos = response.data.find(b'Stale Client')
+        fresh_pos = response.data.find(b'Fresh Client')
+        assert stale_pos < fresh_pos
+
+    def test_list_sort_by_staleness_asc(self, client, db_session):
+        """Sort by staleness ascending (freshest first)."""
+        from app.models import Project, StatusUpdate
+        from datetime import datetime
+
+        # Create a stale project with old created_at
+        stale = Project(client_name='Stale Client', project_name='Stale Project',
+                       internal_deadline=date.today(), assigner='Self',
+                       assigned_attorneys='Me', priority='medium')
+        stale.created_at = datetime.utcnow() - timedelta(days=10)  # 10 days old
+
+        # Create a fresh project with recent created_at
+        fresh = Project(client_name='Fresh Client', project_name='Fresh Project',
+                       internal_deadline=date.today(), assigner='Self',
+                       assigned_attorneys='Me', priority='medium')
+        # fresh.created_at will be now (0 days old)
+
+        db_session.add_all([stale, fresh])
+        db_session.commit()
+
+        response = client.get('/projects/?sort_by=staleness&sort_order=asc')
+
+        # Fresh (0 days) should appear before Stale (10 days)
+        stale_pos = response.data.find(b'Stale Client')
+        fresh_pos = response.data.find(b'Fresh Client')
+        assert fresh_pos < stale_pos
+
+    def test_list_invalid_sort_column(self, client, db_session):
+        """Invalid sort column falls back to internal_deadline."""
+        from app.models import Project
+
+        p1 = Project(client_name='Client A', project_name='Project A',
+                    internal_deadline=date.today() + timedelta(days=10),
+                    assigner='Self', assigned_attorneys='Me', priority='medium')
+        p2 = Project(client_name='Client B', project_name='Project B',
+                    internal_deadline=date.today() + timedelta(days=5),
+                    assigner='Self', assigned_attorneys='Me', priority='medium')
+        db_session.add_all([p1, p2])
+        db_session.commit()
+
+        response = client.get('/projects/?sort_by=invalid_column&sort_order=asc')
+
+        # Should fall back to deadline sort - B (earlier) before A
+        a_pos = response.data.find(b'Client A')
+        b_pos = response.data.find(b'Client B')
+        assert b_pos < a_pos
+
+    def test_list_filter_and_sort_combined(self, client, db_session):
+        """Filters and sorting work together."""
+        from app.models import Project
+
+        h1 = Project(client_name='High Early', project_name='HE Project',
+                    internal_deadline=date.today() + timedelta(days=5),
+                    assigner='Self', assigned_attorneys='Me', priority='high')
+        h2 = Project(client_name='High Late', project_name='HL Project',
+                    internal_deadline=date.today() + timedelta(days=30),
+                    assigner='Self', assigned_attorneys='Me', priority='high')
+        low = Project(client_name='Low Client', project_name='Low Project',
+                     internal_deadline=date.today(), assigner='Self',
+                     assigned_attorneys='Me', priority='low')
+        db_session.add_all([h2, h1, low])
+        db_session.commit()
+
+        response = client.get('/projects/?priority=high&sort_by=internal_deadline&sort_order=asc')
+
+        # Only high priority, sorted by deadline (Early before Late)
+        assert b'High Early' in response.data
+        assert b'High Late' in response.data
+        assert b'Low Client' not in response.data
+
+        early_pos = response.data.find(b'High Early')
+        late_pos = response.data.find(b'High Late')
+        assert early_pos < late_pos
+
+
+class TestProjectListTemplateContext:
+    """Test that filter state and dropdown values are passed to template."""
+
+    def test_list_passes_dropdown_values(self, client, db_session):
+        """Template receives attorneys and assigners lists."""
+        from app.models import Project
+
+        p1 = Project(client_name='Client A', project_name='Project A',
+                    internal_deadline=date.today(), assigner='Partner Bob',
+                    assigned_attorneys='Associate Alice', priority='medium')
+        p2 = Project(client_name='Client B', project_name='Project B',
+                    internal_deadline=date.today(), assigner='Partner Carol',
+                    assigned_attorneys='Associate Dave', priority='medium')
+        db_session.add_all([p1, p2])
+        db_session.commit()
+
+        response = client.get('/projects/')
+
+        # Check dropdown options are rendered
+        assert b'Associate Alice' in response.data
+        assert b'Associate Dave' in response.data
+        assert b'Partner Bob' in response.data
+        assert b'Partner Carol' in response.data
+
+    def test_list_shows_filter_form(self, client, db_session):
+        """Template displays filter form controls."""
+        response = client.get('/projects/')
+
+        assert b'filter-form' in response.data
+        assert b'name="priority"' in response.data
+        assert b'name="attorney"' in response.data
+        assert b'name="assigner"' in response.data
+        assert b'Apply Filters' in response.data
+        assert b'Clear' in response.data
+
+    def test_list_shows_sort_links(self, client, sample_project, db_session):
+        """Template displays sortable column header links."""
+        response = client.get('/projects/')
+
+        assert b'sort-link' in response.data
+        assert b'sort_by=internal_deadline' in response.data
+        assert b'sort_by=priority' in response.data
+        assert b'sort_by=staleness' in response.data
+
+    def test_list_shows_sort_indicator_for_current_sort(self, client, sample_project, db_session):
+        """Template shows sort indicator arrow for current sort column."""
+        response = client.get('/projects/?sort_by=internal_deadline&sort_order=asc')
+
+        # Should have an up arrow for asc sort on deadline
+        assert b'sort-indicator' in response.data
+
+    def test_list_preserves_filter_in_sort_links(self, client, sample_project, db_session):
+        """Sort links preserve current filter state in query params."""
+        response = client.get('/projects/?priority=high')
+
+        # Sort links should include priority=high
+        assert b'priority=high' in response.data

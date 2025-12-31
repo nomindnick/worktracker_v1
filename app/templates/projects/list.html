@@ -9,6 +9,44 @@
         <a href="{{ url_for('projects.new') }}" class="btn btn-primary">New Project</a>
     </div>
 
+    {# Filter Form #}
+    <form class="filter-form" method="get" action="{{ url_for('projects.list') }}">
+        <div class="filter-group">
+            <label for="priority">Priority</label>
+            <select name="priority" id="priority">
+                <option value="">All</option>
+                <option value="high" {{ 'selected' if current_filters.priority == 'high' }}>High</option>
+                <option value="medium" {{ 'selected' if current_filters.priority == 'medium' }}>Medium</option>
+                <option value="low" {{ 'selected' if current_filters.priority == 'low' }}>Low</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="attorney">Attorney</label>
+            <select name="attorney" id="attorney">
+                <option value="">All</option>
+                {% for atty in attorneys %}
+                <option value="{{ atty }}" {{ 'selected' if current_filters.attorney == atty }}>{{ atty }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="assigner">Assigner</label>
+            <select name="assigner" id="assigner">
+                <option value="">All</option>
+                {% for asgn in assigners %}
+                <option value="{{ asgn }}" {{ 'selected' if current_filters.assigner == asgn }}>{{ asgn }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {# Preserve sort state #}
+        <input type="hidden" name="sort_by" value="{{ current_filters.sort_by }}">
+        <input type="hidden" name="sort_order" value="{{ current_filters.sort_order }}">
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-small">Apply Filters</button>
+            <a href="{{ url_for('projects.list') }}" class="btn btn-small">Clear</a>
+        </div>
+    </form>
+
     {% if projects %}
     <table class="data-table">
         <thead>
@@ -17,13 +55,37 @@
                 <th>Project</th>
                 <th>Matter #</th>
                 <th>Hard Deadline</th>
-                <th>Internal Deadline</th>
+                <th>
+                    {% set new_order = 'desc' if current_filters.sort_by == 'internal_deadline' and current_filters.sort_order == 'asc' else 'asc' %}
+                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, sort_by='internal_deadline', sort_order=new_order) }}" class="sort-link">
+                        Internal Deadline
+                        {% if current_filters.sort_by == 'internal_deadline' %}
+                        <span class="sort-indicator">{{ '▲' if current_filters.sort_order == 'asc' else '▼' }}</span>
+                        {% endif %}
+                    </a>
+                </th>
                 <th>Attorneys</th>
-                <th>Priority</th>
+                <th>
+                    {% set new_order = 'desc' if current_filters.sort_by == 'priority' and current_filters.sort_order == 'asc' else 'asc' %}
+                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, sort_by='priority', sort_order=new_order) }}" class="sort-link">
+                        Priority
+                        {% if current_filters.sort_by == 'priority' %}
+                        <span class="sort-indicator">{{ '▲' if current_filters.sort_order == 'asc' else '▼' }}</span>
+                        {% endif %}
+                    </a>
+                </th>
                 <th>Follow-ups</th>
                 <th>Next Follow-up</th>
                 <th>Last Updated</th>
-                <th>Days Stale</th>
+                <th>
+                    {% set new_order = 'desc' if current_filters.sort_by == 'staleness' and current_filters.sort_order == 'asc' else 'asc' %}
+                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, sort_by='staleness', sort_order=new_order) }}" class="sort-link">
+                        Days Stale
+                        {% if current_filters.sort_by == 'staleness' %}
+                        <span class="sort-indicator">{{ '▲' if current_filters.sort_order == 'asc' else '▼' }}</span>
+                        {% endif %}
+                    </a>
+                </th>
                 <th>Actions</th>
             </tr>
         </thead>

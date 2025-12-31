@@ -38,7 +38,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | Phase 3: Follow-ups | Complete | 3/3 |
 | Phase 4: Dashboard | Complete | 2/2 |
 | Phase 5: Export & Archive | Complete | 2/2 |
-| Phase 6: Polish | Not Started | 0/3 |
+| Phase 6: Polish | In Progress | 1/3 |
 
 ### Sprint Checklist
 
@@ -67,7 +67,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 - [x] Sprint 5.2: Archived projects view
 
 #### Phase 6: Polish
-- [ ] Sprint 6.1: Filtering and sorting
+- [x] Sprint 6.1: Filtering and sorting
 - [ ] Sprint 6.2: Form validation and flash messages
 - [ ] Sprint 6.3: Confirmation dialogs and responsiveness
 
@@ -95,6 +95,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-31 | 5.1 | CSV export functionality verified complete - route at `/export/`, downloads as `worklist_YYYY-MM-DD.csv`, includes all active projects with latest status and next follow-up. Navigation link present in base.html. | Functionality was implemented during earlier sprints (likely during testing infrastructure setup). 12 export tests, all passing. 178 tests total, 100% coverage maintained. |
 | 2025-12-31 | 5.2 | Archived projects view complete - updated archive route to show confirmation form with actual_hours field (GET/POST), added unarchive route to reactivate projects, added `/archived` route to list archived projects with estimated vs actual hours. Updated navigation with "Archived" link. Fixed project detail to show Unarchive button for archived projects. | Added 20 new tests (archive GET form, actual_hours saving, unarchive, archived list, detail button states). 198 tests total, 100% coverage. **Phase 5 Export & Archive complete.** |
 | 2025-12-31 | Review | Comprehensive review of all phases against spec. Fixed missing features: added Hard Deadline and Attorneys columns to projects list, added Add Follow-up button to project list actions, added Actual Hours display to project detail, added Actual Hours field to project edit form. | Added 5 new tests for new features. 203 tests total, 100% coverage. All phases now spec-compliant. |
+| 2025-12-31 | 6.1 | Filtering and sorting complete - added filter form to projects list with priority/attorney/assigner dropdowns, made Internal Deadline/Priority/Days Stale columns sortable with click-to-toggle asc/desc, filters AND together, sort handles staleness (computed property) with Python sort, invalid sort columns fall back to deadline, URL preserves filter/sort state. Added filter-form and sort-link CSS styles. | Added 20 new tests (7 filtering, 8 sorting, 5 template context). 223 tests total, 100% coverage. **Phase 6 Sprint 1 complete.** |
 
 ---
 
