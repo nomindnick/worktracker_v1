@@ -165,7 +165,7 @@ class TestFollowUpComplete:
     """Test POST /followups/<id>/complete route."""
 
     def test_complete_returns_redirect(self, client, sample_followup, db_session):
-        """Complete redirects (stub behavior)."""
+        """Complete redirects."""
         response = client.post(f'/followups/{sample_followup.id}/complete',
                                follow_redirects=False)
         assert response.status_code == 302
@@ -188,12 +188,42 @@ class TestFollowUpComplete:
                                follow_redirects=False)
         assert '/' in response.location
 
+    def test_complete_marks_followup_as_completed(self, client, sample_followup, db_session):
+        """Complete sets completed=True on the follow-up."""
+        assert sample_followup.completed is False
+
+        response = client.post(f'/followups/{sample_followup.id}/complete',
+                               follow_redirects=False)
+
+        db_session.refresh(sample_followup)
+        assert sample_followup.completed is True
+        assert sample_followup.completed_at is not None
+
+    def test_complete_flashes_success_message(self, client, sample_followup, db_session):
+        """Complete shows success flash message."""
+        response = client.post(f'/followups/{sample_followup.id}/complete',
+                               follow_redirects=True)
+        assert b'Follow-up marked as complete' in response.data
+
+    def test_complete_removes_from_pending_list(self, client, sample_followup, db_session):
+        """Completed follow-up no longer appears in pending list."""
+        # Verify it's in the list initially
+        response = client.get('/followups/')
+        assert b'John Doe' in response.data
+
+        # Complete it
+        client.post(f'/followups/{sample_followup.id}/complete')
+
+        # Verify it's no longer in the list
+        response = client.get('/followups/')
+        assert b'John Doe' not in response.data
+
 
 class TestFollowUpSnooze:
     """Test POST /followups/<id>/snooze route."""
 
     def test_snooze_returns_redirect(self, client, sample_followup, db_session):
-        """Snooze redirects (stub behavior)."""
+        """Snooze redirects."""
         response = client.post(f'/followups/{sample_followup.id}/snooze',
                                follow_redirects=False)
         assert response.status_code == 302
@@ -202,6 +232,42 @@ class TestFollowUpSnooze:
         """Snooze returns 404 for non-existent follow-up."""
         response = client.post('/followups/99999/snooze')
         assert response.status_code == 404
+
+    def test_snooze_updates_due_date(self, client, sample_followup, db_session):
+        """Snooze updates the follow-up due date by specified days."""
+        original_due_date = sample_followup.due_date
+
+        response = client.post(f'/followups/{sample_followup.id}/snooze',
+                               data={'days': 3},
+                               follow_redirects=False)
+
+        db_session.refresh(sample_followup)
+        assert sample_followup.due_date == original_due_date + timedelta(days=3)
+
+    def test_snooze_defaults_to_one_day(self, client, sample_followup, db_session):
+        """Snooze defaults to 1 day if days parameter not provided."""
+        original_due_date = sample_followup.due_date
+
+        response = client.post(f'/followups/{sample_followup.id}/snooze',
+                               follow_redirects=False)
+
+        db_session.refresh(sample_followup)
+        assert sample_followup.due_date == original_due_date + timedelta(days=1)
+
+    def test_snooze_flashes_success_message(self, client, sample_followup, db_session):
+        """Snooze shows success flash message."""
+        response = client.post(f'/followups/{sample_followup.id}/snooze',
+                               data={'days': 7},
+                               follow_redirects=True)
+        assert b'Follow-up snoozed by 7 day(s)' in response.data
+
+    def test_snooze_redirects_to_referrer(self, client, sample_followup, db_session):
+        """Snooze redirects to referrer if available."""
+        response = client.post(f'/followups/{sample_followup.id}/snooze',
+                               data={'days': 1},
+                               headers={'Referer': '/projects/1'},
+                               follow_redirects=False)
+        assert response.location == '/projects/1'
 
 
 class TestProjectFollowupsNew:
