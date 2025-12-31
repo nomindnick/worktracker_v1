@@ -477,7 +477,7 @@ class TestProjectDetail:
 
         assert b'Pending' in response.data
         assert b'John Doe' in response.data
-        assert b'associate' in response.data
+        assert b'Associate' in response.data  # Formatted with title case
         assert b'Important follow-up' in response.data
         assert b'Complete' in response.data
         assert b'Snooze' in response.data
@@ -502,7 +502,7 @@ class TestProjectDetail:
 
         assert b'Completed' in response.data
         assert b'Jane Smith' in response.data
-        assert b'client' in response.data
+        assert b'Client' in response.data  # Formatted with title case
 
     def test_detail_shows_no_followups_message(self, client, sample_project, db_session):
         """Project detail shows message when no follow-ups exist."""

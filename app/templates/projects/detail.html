@@ -81,7 +81,7 @@
             <li class="followup-item">
                 <div class="followup-info">
                     <span class="followup-target">{{ followup.target_name }}</span>
-                    <span class="followup-type">({{ followup.target_type }})</span>
+                    <span class="followup-type">({{ followup.target_type | replace('_', ' ') | title }})</span>
                     <span class="followup-due">Due: {{ followup.due_date }}</span>
                     {% if followup.notes %}
                     <p class="followup-notes">{{ followup.notes }}</p>
@@ -111,7 +111,7 @@
             <li class="followup-item followup-completed">
                 <div class="followup-info">
                     <span class="followup-target">{{ followup.target_name }}</span>
-                    <span class="followup-type">({{ followup.target_type }})</span>
+                    <span class="followup-type">({{ followup.target_type | replace('_', ' ') | title }})</span>
                     <span class="followup-completed-at">Completed: {{ followup.completed_at.strftime('%Y-%m-%d %H:%M') }}</span>
                     {% if followup.notes %}
                     <p class="followup-notes">{{ followup.notes }}</p>

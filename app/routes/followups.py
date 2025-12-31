@@ -53,7 +53,7 @@ def new():
             return render_template('followups/form.html',
                                    followup=None,
                                    projects=projects,
-                                   selected_project_id=int(project_id) if project_id else None)
+                                   selected_project_id=project.id)
 
         # Create follow-up
         followup = FollowUp(
@@ -83,7 +83,7 @@ def complete(id):
     """Mark a follow-up as complete."""
     followup = FollowUp.query.get_or_404(id)
     followup.completed = True
-    followup.completed_at = datetime.now()
+    followup.completed_at = datetime.utcnow()
     db.session.commit()
     flash('Follow-up marked as complete.', 'success')
     return redirect(request.referrer or url_for('dashboard.index'))
@@ -94,6 +94,7 @@ def snooze(id):
     """Snooze a follow-up (push due date)."""
     followup = FollowUp.query.get_or_404(id)
     days = request.form.get('days', type=int, default=1)
+    days = max(1, min(days, 365))  # Ensure days is between 1 and 365
     followup.due_date = followup.due_date + timedelta(days=days)
     db.session.commit()
     flash(f'Follow-up snoozed by {days} day(s).', 'success')

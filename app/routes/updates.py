@@ -21,7 +21,7 @@ def new():
         if not notes:
             flash('Status update notes are required.', 'error')
             projects = Project.query.filter_by(status='active').order_by(Project.client_name).all()
-            return render_template('updates/form.html', projects=projects, selected_project_id=int(project_id))
+            return render_template('updates/form.html', projects=projects, selected_project_id=project.id)
 
         # Create status update
         status_update = StatusUpdate(
