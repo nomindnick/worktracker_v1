@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
-from datetime import datetime
+from datetime import datetime, timedelta
 from app import db
 from app.models import FollowUp, Project
 
@@ -67,7 +67,10 @@ def new():
 def complete(id):
     """Mark a follow-up as complete."""
     followup = FollowUp.query.get_or_404(id)
-    # TODO: Handle completion
+    followup.completed = True
+    followup.completed_at = datetime.now()
+    db.session.commit()
+    flash('Follow-up marked as complete.', 'success')
     return redirect(request.referrer or url_for('dashboard.index'))
 
 
@@ -75,5 +78,8 @@ def complete(id):
 def snooze(id):
     """Snooze a follow-up (push due date)."""
     followup = FollowUp.query.get_or_404(id)
-    # TODO: Handle snooze
+    days = request.form.get('days', type=int, default=1)
+    followup.due_date = followup.due_date + timedelta(days=days)
+    db.session.commit()
+    flash(f'Follow-up snoozed by {days} day(s).', 'success')
     return redirect(request.referrer or url_for('dashboard.index'))

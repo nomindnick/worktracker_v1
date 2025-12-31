@@ -35,7 +35,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 |-------|--------|-------------------|
 | Phase 1: Foundation | Complete | 5/5 |
 | Phase 2: Status Updates | Complete | 2/2 |
-| Phase 3: Follow-ups | In Progress | 1/3 |
+| Phase 3: Follow-ups | In Progress | 2/3 |
 | Phase 4: Dashboard | Not Started | 0/2 |
 | Phase 5: Export & Archive | Not Started | 0/2 |
 | Phase 6: Polish | Not Started | 0/3 |
@@ -55,7 +55,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 
 #### Phase 3: Follow-ups
 - [x] Sprint 3.1: Follow-up routes (Create/List)
-- [ ] Sprint 3.2: Follow-up routes (Complete/Snooze) and form
+- [x] Sprint 3.2: Follow-up routes (Complete/Snooze) and form
 - [ ] Sprint 3.3: Integrate into project views
 
 #### Phase 4: Dashboard
@@ -88,6 +88,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-30 | 2.1 | Status update routes and form complete - GET /updates/new with project dropdown, POST /updates/new creates updates, GET /projects/<id>/updates/new redirects with pre-selection | All verification criteria met: standalone form works, project dropdown populated, pre-selection via query param, POST creates update and redirects. 100 tests, 100% coverage. |
 | 2025-12-30 | 2.2 | Integrated status updates into project views - added staleness properties to Project model (last_update_date, days_since_update, staleness_level), updated detail template to show status update history (newest first), updated list template with Last Updated column, Days Stale badge with color coding, and Add Update button | All verification criteria met: detail shows updates, list shows staleness columns with color badges (green/yellow/red), quick add button works. 111 tests, 100% coverage. **Phase 2 Status Updates complete.** |
 | 2025-12-30 | 3.1 | Follow-up routes (Create/List) complete - implemented GET/POST /followups/new with project dropdown, project pre-selection via query param, form validation, and database creation. Added GET /projects/<id>/followups/new redirect route. Updated form.html template with project dropdown. | All verification criteria met: can view pending followups list, create followup from standalone form, create followup from project context with pre-selection. 123 tests, 100% coverage. |
+| 2025-12-31 | 3.2 | Follow-up routes (Complete/Snooze) and form complete - implemented POST /followups/<id>/complete to mark follow-ups complete (sets completed=True, completed_at timestamp). Implemented POST /followups/<id>/snooze to update due_date by specified days (defaults to 1 day). Form template with quick-set date buttons and JavaScript was already in place from previous work. | All verification criteria met: can mark follow-up complete, completed follow-ups disappear from pending list, snooze updates due_date correctly, quick-set buttons work. Added 6 new tests for complete/snooze functionality. 130 tests total, 100% coverage. |
 
 ---
 
