@@ -39,6 +39,56 @@ class TestProjectList:
 
         assert b'Add Update' in response.data
 
+    def test_list_shows_followup_columns(self, client, sample_project, db_session):
+        """Project list shows Pending Follow-ups and Next Follow-up columns."""
+        response = client.get('/projects/')
+
+        assert b'Pending Follow-ups' in response.data
+        assert b'Next Follow-up' in response.data
+
+    def test_list_shows_followup_count(self, client, sample_project, db_session):
+        """Project list shows count of pending follow-ups."""
+        from app.models import FollowUp
+
+        # Create pending follow-ups
+        followup1 = FollowUp(
+            project_id=sample_project.id,
+            target_type='associate',
+            target_name='Person A',
+            due_date=date.today()
+        )
+        followup2 = FollowUp(
+            project_id=sample_project.id,
+            target_type='client',
+            target_name='Person B',
+            due_date=date.today() + timedelta(days=1)
+        )
+        db_session.add_all([followup1, followup2])
+        db_session.commit()
+
+        response = client.get('/projects/')
+
+        # Should show count of 2
+        assert b'>2<' in response.data
+
+    def test_list_shows_next_followup_date(self, client, sample_project, db_session):
+        """Project list shows next follow-up due date."""
+        from app.models import FollowUp
+
+        next_date = date.today() + timedelta(days=3)
+        followup = FollowUp(
+            project_id=sample_project.id,
+            target_type='associate',
+            target_name='Person A',
+            due_date=next_date
+        )
+        db_session.add(followup)
+        db_session.commit()
+
+        response = client.get('/projects/')
+
+        assert next_date.isoformat().encode() in response.data
+
 
 class TestProjectNew:
     """Test GET/POST /projects/new routes."""
@@ -232,6 +282,64 @@ class TestProjectDetail:
         """Project detail shows message when no updates exist."""
         response = client.get(f'/projects/{sample_project.id}')
         assert b'No status updates yet' in response.data
+
+    def test_detail_shows_pending_followups(self, client, sample_project, db_session):
+        """Project detail shows pending follow-ups with action buttons."""
+        from app.models import FollowUp
+
+        followup = FollowUp(
+            project_id=sample_project.id,
+            target_type='associate',
+            target_name='John Doe',
+            due_date=date.today() + timedelta(days=2),
+            notes='Important follow-up'
+        )
+        db_session.add(followup)
+        db_session.commit()
+
+        response = client.get(f'/projects/{sample_project.id}')
+
+        assert b'Pending' in response.data
+        assert b'John Doe' in response.data
+        assert b'associate' in response.data
+        assert b'Important follow-up' in response.data
+        assert b'Complete' in response.data
+        assert b'Snooze' in response.data
+
+    def test_detail_shows_completed_followups(self, client, sample_project, db_session):
+        """Project detail shows completed follow-ups separately."""
+        from app.models import FollowUp
+        from datetime import datetime
+
+        followup = FollowUp(
+            project_id=sample_project.id,
+            target_type='client',
+            target_name='Jane Smith',
+            due_date=date.today(),
+            completed=True,
+            completed_at=datetime.utcnow()
+        )
+        db_session.add(followup)
+        db_session.commit()
+
+        response = client.get(f'/projects/{sample_project.id}')
+
+        assert b'Completed' in response.data
+        assert b'Jane Smith' in response.data
+        assert b'client' in response.data
+
+    def test_detail_shows_no_followups_message(self, client, sample_project, db_session):
+        """Project detail shows message when no follow-ups exist."""
+        response = client.get(f'/projects/{sample_project.id}')
+
+        assert b'No pending follow-ups' in response.data
+        assert b'No completed follow-ups' in response.data
+
+    def test_detail_shows_add_followup_button(self, client, sample_project, db_session):
+        """Project detail shows Add Follow-up button."""
+        response = client.get(f'/projects/{sample_project.id}')
+
+        assert b'Add Follow-up' in response.data
 
 
 class TestProjectEdit:
