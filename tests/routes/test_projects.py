@@ -26,6 +26,19 @@ class TestProjectList:
 
         assert b'Acme Corp' not in response.data
 
+    def test_list_shows_staleness_column(self, client, sample_project, db_session):
+        """Project list shows Days Stale column with staleness indicator."""
+        response = client.get('/projects/')
+
+        assert b'Days Stale' in response.data
+        assert b'staleness-ok' in response.data
+
+    def test_list_shows_add_update_button(self, client, sample_project, db_session):
+        """Project list shows Add Update button for each project."""
+        response = client.get('/projects/')
+
+        assert b'Add Update' in response.data
+
 
 class TestProjectNew:
     """Test GET/POST /projects/new routes."""
@@ -203,6 +216,22 @@ class TestProjectDetail:
         """Project detail returns 404 for non-existent project."""
         response = client.get('/projects/99999')
         assert response.status_code == 404
+
+    def test_detail_shows_status_updates(self, client, sample_project_with_updates, db_session):
+        """Project detail shows status updates newest-first."""
+        response = client.get(f'/projects/{sample_project_with_updates.id}')
+
+        assert b'Draft in progress' in response.data
+        assert b'Initial research completed' in response.data
+        # Check order: 'Draft' should appear before 'Initial' (newest first)
+        draft_pos = response.data.find(b'Draft in progress')
+        initial_pos = response.data.find(b'Initial research completed')
+        assert draft_pos < initial_pos
+
+    def test_detail_shows_no_updates_message(self, client, sample_project, db_session):
+        """Project detail shows message when no updates exist."""
+        response = client.get(f'/projects/{sample_project.id}')
+        assert b'No status updates yet' in response.data
 
 
 class TestProjectEdit:

@@ -165,3 +165,43 @@ class TestStatusUpdateModel:
 
         assert update.project is not None
         assert update.project.id == sample_project_with_updates.id
+
+
+class TestProjectStalenessProperties:
+    """Test Project staleness calculation properties."""
+
+    def test_last_update_date_with_updates(self, sample_project_with_updates, db_session):
+        """last_update_date returns most recent update datetime."""
+        last_date = sample_project_with_updates.last_update_date
+        assert last_date is not None
+        assert isinstance(last_date, datetime)
+
+    def test_last_update_date_without_updates(self, sample_project, db_session):
+        """last_update_date returns None when no updates exist."""
+        assert sample_project.last_update_date is None
+
+    def test_days_since_update_with_updates(self, sample_project_with_updates, db_session):
+        """days_since_update calculates from last update."""
+        days = sample_project_with_updates.days_since_update
+        assert days == 0  # Just created
+
+    def test_days_since_update_without_updates(self, sample_project, db_session):
+        """days_since_update calculates from created_at when no updates."""
+        days = sample_project.days_since_update
+        assert days == 0  # Just created
+
+    def test_staleness_level_ok(self, sample_project, db_session):
+        """staleness_level returns 'ok' for <7 days."""
+        assert sample_project.staleness_level == 'ok'
+
+    def test_staleness_level_warning(self, sample_project, db_session):
+        """staleness_level returns 'warning' for 7-13 days."""
+        sample_project.created_at = datetime.utcnow() - timedelta(days=10)
+        db_session.commit()
+        assert sample_project.staleness_level == 'warning'
+
+    def test_staleness_level_critical(self, sample_project, db_session):
+        """staleness_level returns 'critical' for 14+ days."""
+        sample_project.created_at = datetime.utcnow() - timedelta(days=14)
+        db_session.commit()
+        assert sample_project.staleness_level == 'critical'

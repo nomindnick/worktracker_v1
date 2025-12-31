@@ -24,6 +24,34 @@ class Project(db.Model):
     followups = db.relationship('FollowUp', backref='project', lazy='dynamic', cascade='all, delete-orphan')
     status_updates = db.relationship('StatusUpdate', backref='project', lazy='dynamic', cascade='all, delete-orphan')
 
+    @property
+    def last_update_date(self):
+        """Get the datetime of the most recent status update, or None."""
+        from app.models import StatusUpdate
+        update = self.status_updates.order_by(StatusUpdate.created_at.desc()).first()
+        return update.created_at if update else None
+
+    def get_status_updates_ordered(self):
+        """Get all status updates ordered by created_at descending (newest first)."""
+        from app.models import StatusUpdate
+        return self.status_updates.order_by(StatusUpdate.created_at.desc()).all()
+
+    @property
+    def days_since_update(self):
+        """Return days since last update, or days since creation if no updates."""
+        reference_date = self.last_update_date or self.created_at
+        return (datetime.utcnow() - reference_date).days
+
+    @property
+    def staleness_level(self):
+        """Return 'critical' (14+ days), 'warning' (7-13 days), or 'ok' (< 7 days)."""
+        days = self.days_since_update
+        if days >= 14:
+            return 'critical'
+        elif days >= 7:
+            return 'warning'
+        return 'ok'
+
     def __repr__(self):
         return f'<Project {self.client_name}: {self.project_name}>'
 

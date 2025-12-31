@@ -45,7 +45,19 @@
             <h2>Status Updates</h2>
             <a href="{{ url_for('updates.new') }}?project_id={{ project.id }}" class="btn btn-small">Add Update</a>
         </div>
-        <p class="placeholder">Status updates will appear here.</p>
+        {% set updates = project.get_status_updates_ordered() %}
+        {% if updates %}
+        <ul class="update-list">
+            {% for update in updates %}
+            <li class="update-item">
+                <span class="update-date">{{ update.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                <p class="update-notes">{{ update.notes }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-state">No status updates yet.</p>
+        {% endif %}
     </section>
 
     <section class="followups">
