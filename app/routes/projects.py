@@ -113,15 +113,44 @@ def edit(id):
     return render_template('projects/form.html', project=project)
 
 
-@bp.route('/<int:id>/archive', methods=['POST'])
+@bp.route('/<int:id>/archive', methods=['GET', 'POST'])
 def archive(id):
     """Archive a project."""
     project = Project.query.get_or_404(id)
-    project.status = 'archived'
+
+    if request.method == 'POST':
+        # Parse optional actual_hours
+        if request.form.get('actual_hours'):
+            try:
+                project.actual_hours = float(request.form['actual_hours'])
+            except ValueError:
+                pass
+
+        project.status = 'archived'
+        project.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash(f'Project "{project.project_name}" has been archived.', 'success')
+        return redirect(url_for('projects.list'))
+
+    return render_template('projects/archive_form.html', project=project)
+
+
+@bp.route('/<int:id>/unarchive', methods=['POST'])
+def unarchive(id):
+    """Unarchive a project (reactivate)."""
+    project = Project.query.get_or_404(id)
+    project.status = 'active'
     project.updated_at = datetime.utcnow()
     db.session.commit()
-    flash(f'Project "{project.project_name}" has been archived.', 'success')
-    return redirect(url_for('projects.list'))
+    flash(f'Project "{project.project_name}" has been reactivated.', 'success')
+    return redirect(url_for('projects.detail', id=project.id))
+
+
+@bp.route('/archived')
+def archived():
+    """List all archived projects."""
+    projects = Project.query.filter_by(status='archived').all()
+    return render_template('archived.html', projects=projects)
 
 
 @bp.route('/<int:id>/updates/new')

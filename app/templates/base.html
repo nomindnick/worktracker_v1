@@ -14,6 +14,7 @@
             <li><a href="{{ url_for('projects.list') }}" {% if request.endpoint and request.endpoint.startswith('projects.') %}class="active"{% endif %}>Projects</a></li>
             <li><a href="{{ url_for('followups.list') }}" {% if request.endpoint and request.endpoint.startswith('followups.') %}class="active"{% endif %}>Follow-ups</a></li>
             <li><a href="{{ url_for('export.export_csv') }}">Export CSV</a></li>
+            <li><a href="{{ url_for('projects.archived') }}" {% if request.endpoint == 'projects.archived' %}class="active"{% endif %}>Archived</a></li>
         </ul>
     </nav>
 

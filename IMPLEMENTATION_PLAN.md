@@ -37,7 +37,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | Phase 2: Status Updates | Complete | 2/2 |
 | Phase 3: Follow-ups | Complete | 3/3 |
 | Phase 4: Dashboard | Complete | 2/2 |
-| Phase 5: Export & Archive | Not Started | 0/2 |
+| Phase 5: Export & Archive | Complete | 2/2 |
 | Phase 6: Polish | Not Started | 0/3 |
 
 ### Sprint Checklist
@@ -63,8 +63,8 @@ This ensures future Claude Code sessions understand what has been done and can c
 - [x] Sprint 4.2: Dashboard template and styling
 
 #### Phase 5: Export & Archive
-- [ ] Sprint 5.1: CSV export functionality
-- [ ] Sprint 5.2: Archived projects view
+- [x] Sprint 5.1: CSV export functionality
+- [x] Sprint 5.2: Archived projects view
 
 #### Phase 6: Polish
 - [ ] Sprint 6.1: Filtering and sorting
@@ -92,6 +92,8 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-31 | 3.3 | Follow-ups integrated into project views - added helper methods to Project model (get_pending_followups, get_completed_followups, pending_followup_count, next_followup). Updated projects/detail.html to display pending and completed follow-ups with Complete/Snooze action buttons. Updated projects/list.html to show Pending Follow-ups count and Next Follow-up date columns. Add Follow-up button was already present. | All verification criteria met: project detail shows all follow-ups with action buttons, can complete/snooze directly from detail, project list shows follow-up summary columns. Added 14 new tests (8 model tests, 6 route tests). 144 tests total, 100% coverage. **Phase 3 Follow-ups complete.** |
 | 2025-12-30 | 4.1 | Dashboard route and query logic complete - implemented 4 dashboard categories: follow-ups due today, overdue follow-ups, upcoming deadlines (within 7 days), and dusty projects (7+ days without update). Updated dashboard.html template to render data. Queries join to Project to exclude archived projects' follow-ups. Dusty projects use existing model staleness_level property. | All verification criteria met: route returns correct data for each category, staleness calculation uses efficient model properties, edge cases handled. Added 22 new dashboard tests. 166 tests total, 100% coverage. |
 | 2025-12-30 | 4.2 | Dashboard template and styling complete - added urgency color coding to sections (urgency-critical for overdue, urgency-warning for due today, urgency-info for deadlines). Added quick action buttons: Complete/Snooze/View for follow-ups, View for deadlines, Add Update/View for dusty projects. Added CSS for dashboard-list styling and staleness gradients. | All verification criteria met: dashboard is landing page, all sections render with color coding, quick actions work (Complete marks done, Snooze updates date, Add Update pre-selects project). Added 12 new template tests. 178 tests total, 100% coverage. **Phase 4 Dashboard complete.** |
+| 2025-12-31 | 5.1 | CSV export functionality verified complete - route at `/export/`, downloads as `worklist_YYYY-MM-DD.csv`, includes all active projects with latest status and next follow-up. Navigation link present in base.html. | Functionality was implemented during earlier sprints (likely during testing infrastructure setup). 12 export tests, all passing. 178 tests total, 100% coverage maintained. |
+| 2025-12-31 | 5.2 | Archived projects view complete - updated archive route to show confirmation form with actual_hours field (GET/POST), added unarchive route to reactivate projects, added `/archived` route to list archived projects with estimated vs actual hours. Updated navigation with "Archived" link. Fixed project detail to show Unarchive button for archived projects. | Added 20 new tests (archive GET form, actual_hours saving, unarchive, archived list, detail button states). 198 tests total, 100% coverage. **Phase 5 Export & Archive complete.** |
 
 ---
 
@@ -116,6 +118,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | tests/routes/test_followups.py | Testing | Follow-up route tests (11 tests) |
 | tests/routes/test_updates.py | Testing | Status update route tests (2 tests) |
 | tests/routes/test_export.py | Testing | CSV export tests (12 tests) |
+| app/templates/projects/archive_form.html | 5.2 | Archive confirmation form with actual_hours |
 
 ---
 

@@ -3,11 +3,45 @@
 {% block title %}Archived Projects - Legal Worklist{% endblock %}
 
 {% block content %}
-<div class="archived-list">
+<div class="projects-list">
     <div class="page-header">
         <h1>Archived Projects</h1>
     </div>
 
-    <p class="placeholder">Archived projects will appear here.</p>
+    {% if projects %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Client</th>
+                <th>Project</th>
+                <th>Matter #</th>
+                <th>Estimated Hours</th>
+                <th>Actual Hours</th>
+                <th>Archived Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+            <tr>
+                <td>{{ project.client_name }}</td>
+                <td><a href="{{ url_for('projects.detail', id=project.id) }}">{{ project.project_name }}</a></td>
+                <td>{{ project.matter_number or '-' }}</td>
+                <td>{{ project.estimated_hours or '-' }}</td>
+                <td>{{ project.actual_hours or '-' }}</td>
+                <td>{{ project.updated_at.strftime('%Y-%m-%d') if project.updated_at else '-' }}</td>
+                <td>
+                    <form action="{{ url_for('projects.unarchive', id=project.id) }}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-small">Unarchive</button>
+                    </form>
+                    <a href="{{ url_for('projects.detail', id=project.id) }}" class="btn btn-small">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No archived projects.</p>
+    {% endif %}
 </div>
 {% endblock %}

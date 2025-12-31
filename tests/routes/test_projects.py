@@ -341,6 +341,22 @@ class TestProjectDetail:
 
         assert b'Add Follow-up' in response.data
 
+    def test_detail_shows_archive_button_for_active(self, client, sample_project, db_session):
+        """Project detail shows Archive button for active projects."""
+        response = client.get(f'/projects/{sample_project.id}')
+
+        assert b'Archive' in response.data
+        assert b'Unarchive' not in response.data
+
+    def test_detail_shows_unarchive_button_for_archived(self, client, sample_project, db_session):
+        """Project detail shows Unarchive button for archived projects."""
+        sample_project.status = 'archived'
+        db_session.commit()
+
+        response = client.get(f'/projects/{sample_project.id}')
+
+        assert b'Unarchive' in response.data
+
 
 class TestProjectEdit:
     """Test GET/POST /projects/<id>/edit routes."""
@@ -476,7 +492,30 @@ class TestProjectEdit:
 
 
 class TestProjectArchive:
-    """Test POST /projects/<id>/archive route."""
+    """Test GET/POST /projects/<id>/archive route."""
+
+    def test_archive_get_returns_200(self, client, sample_project, db_session):
+        """Archive GET shows confirmation form."""
+        response = client.get(f'/projects/{sample_project.id}/archive')
+        assert response.status_code == 200
+
+    def test_archive_get_shows_project_name(self, client, sample_project, db_session):
+        """Archive GET shows project name for confirmation."""
+        response = client.get(f'/projects/{sample_project.id}/archive')
+
+        assert b'Acme Corp' in response.data
+        assert b'Patent Application' in response.data
+
+    def test_archive_get_shows_actual_hours_field(self, client, sample_project, db_session):
+        """Archive GET shows actual_hours input field."""
+        response = client.get(f'/projects/{sample_project.id}/archive')
+
+        assert b'actual_hours' in response.data
+
+    def test_archive_get_404_for_missing_project(self, client, db_session):
+        """Archive GET returns 404 for non-existent project."""
+        response = client.get('/projects/99999/archive')
+        assert response.status_code == 404
 
     def test_archive_changes_status(self, client, sample_project, db_session):
         """Archive changes project status to archived."""
@@ -513,3 +552,135 @@ class TestProjectArchive:
 
         db_session.refresh(sample_project)
         assert sample_project.updated_at >= original_updated_at
+
+    def test_archive_post_saves_actual_hours(self, client, sample_project, db_session):
+        """Archive POST saves actual_hours value."""
+        client.post(f'/projects/{sample_project.id}/archive', data={
+            'actual_hours': '35.5'
+        })
+
+        db_session.refresh(sample_project)
+        assert sample_project.actual_hours == 35.5
+
+    def test_archive_post_without_actual_hours(self, client, sample_project, db_session):
+        """Archive POST works without actual_hours."""
+        client.post(f'/projects/{sample_project.id}/archive', data={})
+
+        db_session.refresh(sample_project)
+        assert sample_project.status == 'archived'
+        assert sample_project.actual_hours is None
+
+    def test_archive_post_with_invalid_actual_hours(self, client, sample_project, db_session):
+        """Archive POST with invalid actual_hours ignores the value."""
+        client.post(f'/projects/{sample_project.id}/archive', data={
+            'actual_hours': 'not-a-number'
+        })
+
+        db_session.refresh(sample_project)
+        assert sample_project.status == 'archived'
+        assert sample_project.actual_hours is None
+
+
+class TestProjectUnarchive:
+    """Test POST /projects/<id>/unarchive route."""
+
+    def test_unarchive_changes_status(self, client, sample_project, db_session):
+        """Unarchive changes project status to active."""
+        sample_project.status = 'archived'
+        db_session.commit()
+
+        client.post(f'/projects/{sample_project.id}/unarchive')
+
+        db_session.refresh(sample_project)
+        assert sample_project.status == 'active'
+
+    def test_unarchive_redirects_to_detail(self, client, sample_project, db_session):
+        """Unarchive redirects to project detail."""
+        sample_project.status = 'archived'
+        db_session.commit()
+
+        response = client.post(f'/projects/{sample_project.id}/unarchive',
+                               follow_redirects=False)
+
+        assert response.status_code == 302
+        assert f'/projects/{sample_project.id}' in response.location
+
+    def test_unarchive_404_for_missing_project(self, client, db_session):
+        """Unarchive returns 404 for non-existent project."""
+        response = client.post('/projects/99999/unarchive')
+        assert response.status_code == 404
+
+    def test_unarchive_sets_flash_message(self, client, sample_project, db_session):
+        """Unarchive sets success flash message."""
+        sample_project.status = 'archived'
+        db_session.commit()
+
+        response = client.post(f'/projects/{sample_project.id}/unarchive',
+                               follow_redirects=True)
+
+        assert b'reactivated' in response.data
+
+    def test_unarchive_updates_updated_at(self, client, sample_project, db_session):
+        """Unarchive updates the updated_at timestamp."""
+        sample_project.status = 'archived'
+        db_session.commit()
+        original_updated_at = sample_project.updated_at
+
+        client.post(f'/projects/{sample_project.id}/unarchive')
+
+        db_session.refresh(sample_project)
+        assert sample_project.updated_at >= original_updated_at
+
+
+class TestArchivedList:
+    """Test GET /projects/archived route."""
+
+    def test_archived_list_returns_200(self, client, db_session):
+        """Archived list page returns 200 OK."""
+        response = client.get('/projects/archived')
+        assert response.status_code == 200
+
+    def test_archived_list_shows_archived_projects(self, client, sample_project, db_session):
+        """Archived list shows archived projects."""
+        sample_project.status = 'archived'
+        db_session.commit()
+
+        response = client.get('/projects/archived')
+
+        assert b'Acme Corp' in response.data
+        assert b'Patent Application' in response.data
+
+    def test_archived_list_excludes_active_projects(self, client, sample_project, db_session):
+        """Archived list excludes active projects."""
+        response = client.get('/projects/archived')
+
+        assert b'Acme Corp' not in response.data
+
+    def test_archived_list_shows_hours_columns(self, client, sample_project, db_session):
+        """Archived list shows estimated and actual hours columns."""
+        sample_project.status = 'archived'
+        sample_project.estimated_hours = 40.0
+        sample_project.actual_hours = 45.5
+        db_session.commit()
+
+        response = client.get('/projects/archived')
+
+        assert b'Estimated Hours' in response.data
+        assert b'Actual Hours' in response.data
+        assert b'40' in response.data
+        assert b'45.5' in response.data
+
+    def test_archived_list_shows_unarchive_button(self, client, sample_project, db_session):
+        """Archived list shows Unarchive button."""
+        sample_project.status = 'archived'
+        db_session.commit()
+
+        response = client.get('/projects/archived')
+
+        assert b'Unarchive' in response.data
+
+    def test_archived_list_empty_state(self, client, db_session):
+        """Archived list shows empty state message."""
+        response = client.get('/projects/archived')
+
+        assert b'No archived projects' in response.data
