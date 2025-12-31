@@ -38,7 +38,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | Phase 3: Follow-ups | Complete | 3/3 |
 | Phase 4: Dashboard | Complete | 2/2 |
 | Phase 5: Export & Archive | Complete | 2/2 |
-| Phase 6: Polish | In Progress | 1/3 |
+| Phase 6: Polish | In Progress | 2/3 |
 
 ### Sprint Checklist
 
@@ -68,7 +68,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 
 #### Phase 6: Polish
 - [x] Sprint 6.1: Filtering and sorting
-- [ ] Sprint 6.2: Form validation and flash messages
+- [x] Sprint 6.2: Form validation and flash messages
 - [ ] Sprint 6.3: Confirmation dialogs and responsiveness
 
 ---
@@ -96,6 +96,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-31 | 5.2 | Archived projects view complete - updated archive route to show confirmation form with actual_hours field (GET/POST), added unarchive route to reactivate projects, added `/archived` route to list archived projects with estimated vs actual hours. Updated navigation with "Archived" link. Fixed project detail to show Unarchive button for archived projects. | Added 20 new tests (archive GET form, actual_hours saving, unarchive, archived list, detail button states). 198 tests total, 100% coverage. **Phase 5 Export & Archive complete.** |
 | 2025-12-31 | Review | Comprehensive review of all phases against spec. Fixed missing features: added Hard Deadline and Attorneys columns to projects list, added Add Follow-up button to project list actions, added Actual Hours display to project detail, added Actual Hours field to project edit form. | Added 5 new tests for new features. 203 tests total, 100% coverage. All phases now spec-compliant. |
 | 2025-12-31 | 6.1 | Filtering and sorting complete - added filter form to projects list with priority/attorney/assigner dropdowns, made Internal Deadline/Priority/Days Stale columns sortable with click-to-toggle asc/desc, filters AND together, sort handles staleness (computed property) with Python sort, invalid sort columns fall back to deadline, URL preserves filter/sort state. Added filter-form and sort-link CSS styles. | Added 20 new tests (7 filtering, 8 sorting, 5 template context). 223 tests total, 100% coverage. **Phase 6 Sprint 1 complete.** |
+| 2025-12-31 | 6.2 | Form validation and flash messages complete - added comprehensive server-side validation to projects.py (new, edit, archive) with required field checks, date parsing with try-except, numeric validation for hours. Updated followups.py with date parsing error handling and target_type validation. Added maxlength attributes to form templates (projects, followups, updates). Flash message infrastructure was already in place from earlier sprints. | Added 21 new tests for validation failures. 244 tests total, 100% coverage. All form submissions now validate properly and show appropriate error messages. **Phase 6 Sprint 2 complete.** |
 
 ---
 

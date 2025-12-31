@@ -31,7 +31,7 @@
 
         <div class="form-group">
             <label for="target_name">Target Name *</label>
-            <input type="text" id="target_name" name="target_name" required
+            <input type="text" id="target_name" name="target_name" required maxlength="100"
                    placeholder="Who to follow up with"
                    value="{{ followup.target_name if followup else '' }}">
         </div>
@@ -50,7 +50,7 @@
 
         <div class="form-group">
             <label for="notes">Notes</label>
-            <textarea id="notes" name="notes" rows="4"
+            <textarea id="notes" name="notes" rows="4" maxlength="2000"
                       placeholder="Context for the follow-up">{{ followup.notes if followup else '' }}</textarea>
         </div>
 

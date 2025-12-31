@@ -103,7 +103,33 @@ class TestFollowUpNew:
         })
 
         assert response.status_code == 200
-        assert b'Target name and due date are required' in response.data
+        assert b'Target name is required' in response.data
+        assert b'Due date is required' in response.data
+
+    def test_new_post_validates_due_date_format(self, client, sample_project, db_session):
+        """POST with invalid due_date format shows validation error."""
+        response = client.post('/followups/new', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': 'not-a-date'
+        })
+
+        assert response.status_code == 200
+        assert b'Due date must be a valid date' in response.data
+
+    def test_new_post_validates_target_type(self, client, sample_project, db_session):
+        """POST with invalid target_type shows validation error."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post('/followups/new', data={
+            'project_id': sample_project.id,
+            'target_type': 'invalid_type',
+            'target_name': 'Test Person',
+            'due_date': due_date
+        })
+
+        assert response.status_code == 200
+        assert b'Invalid target type' in response.data
 
     def test_new_post_404_for_invalid_project(self, client, db_session):
         """POST returns 404 for non-existent project."""

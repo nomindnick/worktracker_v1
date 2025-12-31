@@ -29,16 +29,31 @@ def new():
             abort(404)
 
         # Validate required fields
-        if not target_name or not due_date_str:
-            flash('Target name and due date are required.', 'error')
+        errors = []
+        if not target_name:
+            errors.append('Target name is required.')
+        if not due_date_str:
+            errors.append('Due date is required.')
+        if target_type and target_type not in ('associate', 'client', 'opposing_counsel', 'other'):
+            errors.append('Invalid target type.')
+
+        # Parse due date
+        due_date = None
+        if due_date_str:
+            try:
+                due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                errors.append('Due date must be a valid date (YYYY-MM-DD).')
+
+        # If validation errors, flash them and re-render form
+        if errors:
+            for error in errors:
+                flash(error, 'error')
             projects = Project.query.filter_by(status='active').order_by(Project.client_name).all()
             return render_template('followups/form.html',
                                    followup=None,
                                    projects=projects,
                                    selected_project_id=int(project_id) if project_id else None)
-
-        # Parse due date
-        due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
 
         # Create follow-up
         followup = FollowUp(

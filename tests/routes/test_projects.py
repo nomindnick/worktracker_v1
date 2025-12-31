@@ -265,6 +265,163 @@ class TestProjectNew:
 
         assert b'created successfully' in response.data
 
+    def test_new_post_missing_client_name(self, client, db_session):
+        """POST with missing client_name shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': '',
+            'project_name': 'Test Project',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': 'Self',
+            'assigned_attorneys': 'Me',
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Client name is required' in response.data
+
+    def test_new_post_missing_project_name(self, client, db_session):
+        """POST with missing project_name shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': '',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': 'Self',
+            'assigned_attorneys': 'Me',
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Project name is required' in response.data
+
+    def test_new_post_missing_internal_deadline(self, client, db_session):
+        """POST with missing internal_deadline shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': 'Test Project',
+            'internal_deadline': '',
+            'assigner': 'Self',
+            'assigned_attorneys': 'Me',
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Internal deadline is required' in response.data
+
+    def test_new_post_invalid_internal_deadline(self, client, db_session):
+        """POST with invalid internal_deadline format shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': 'Test Project',
+            'internal_deadline': 'not-a-date',
+            'assigner': 'Self',
+            'assigned_attorneys': 'Me',
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Internal deadline must be a valid date' in response.data
+
+    def test_new_post_invalid_hard_deadline(self, client, db_session):
+        """POST with invalid hard_deadline format shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': 'Test Project',
+            'hard_deadline': 'not-a-date',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': 'Self',
+            'assigned_attorneys': 'Me',
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Hard deadline must be a valid date' in response.data
+
+    def test_new_post_invalid_priority(self, client, db_session):
+        """POST with invalid priority value shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': 'Test Project',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': 'Self',
+            'assigned_attorneys': 'Me',
+            'priority': 'invalid'
+        })
+
+        assert response.status_code == 200
+        assert b'Priority must be high, medium, or low' in response.data
+
+    def test_new_post_invalid_estimated_hours(self, client, db_session):
+        """POST with invalid estimated_hours shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': 'Test Project',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': 'Self',
+            'assigned_attorneys': 'Me',
+            'priority': 'medium',
+            'estimated_hours': 'not-a-number'
+        })
+
+        assert response.status_code == 200
+        assert b'Estimated hours must be a valid number' in response.data
+
+    def test_new_post_negative_estimated_hours(self, client, db_session):
+        """POST with negative estimated_hours shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': 'Test Project',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': 'Self',
+            'assigned_attorneys': 'Me',
+            'priority': 'medium',
+            'estimated_hours': '-5'
+        })
+
+        assert response.status_code == 200
+        assert b'Estimated hours cannot be negative' in response.data
+
+    def test_new_post_missing_assigner(self, client, db_session):
+        """POST with missing assigner shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': 'Test Project',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': '',
+            'assigned_attorneys': 'Me',
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Assigner is required' in response.data
+
+    def test_new_post_missing_assigned_attorneys(self, client, db_session):
+        """POST with missing assigned_attorneys shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': 'Test Project',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': 'Self',
+            'assigned_attorneys': '',
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Assigned attorneys is required' in response.data
+
+    def test_new_post_missing_priority(self, client, db_session):
+        """POST with missing priority shows validation error."""
+        response = client.post('/projects/new', data={
+            'client_name': 'Test Client',
+            'project_name': 'Test Project',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': 'Self',
+            'assigned_attorneys': 'Me',
+            'priority': ''
+        })
+
+        assert response.status_code == 200
+        assert b'Priority is required' in response.data
+
 
 class TestProjectDetail:
     """Test GET /projects/<id> route."""
@@ -435,8 +592,8 @@ class TestProjectEdit:
         assert sample_project.hard_deadline == date.today() + timedelta(days=60)
 
     def test_edit_post_with_invalid_estimated_hours(self, client, sample_project, db_session):
-        """POST with invalid estimated_hours falls back to None."""
-        client.post(f'/projects/{sample_project.id}/edit', data={
+        """POST with invalid estimated_hours shows validation error."""
+        response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
             'internal_deadline': date.today().isoformat(),
@@ -446,12 +603,12 @@ class TestProjectEdit:
             'estimated_hours': 'invalid'
         })
 
-        db_session.refresh(sample_project)
-        assert sample_project.estimated_hours is None
+        assert response.status_code == 200
+        assert b'Estimated hours must be a valid number' in response.data
 
     def test_edit_post_with_invalid_actual_hours(self, client, sample_project, db_session):
-        """POST with invalid actual_hours falls back to None."""
-        client.post(f'/projects/{sample_project.id}/edit', data={
+        """POST with invalid actual_hours shows validation error."""
+        response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
             'internal_deadline': date.today().isoformat(),
@@ -461,8 +618,115 @@ class TestProjectEdit:
             'actual_hours': 'not-a-number'
         })
 
+        assert response.status_code == 200
+        assert b'Actual hours must be a valid number' in response.data
+
+    def test_edit_post_with_negative_estimated_hours(self, client, sample_project, db_session):
+        """POST with negative estimated_hours shows validation error."""
+        response = client.post(f'/projects/{sample_project.id}/edit', data={
+            'client_name': sample_project.client_name,
+            'project_name': sample_project.project_name,
+            'internal_deadline': date.today().isoformat(),
+            'assigner': sample_project.assigner,
+            'assigned_attorneys': sample_project.assigned_attorneys,
+            'priority': sample_project.priority,
+            'estimated_hours': '-10'
+        })
+
+        assert response.status_code == 200
+        assert b'Estimated hours cannot be negative' in response.data
+
+    def test_edit_post_with_negative_actual_hours(self, client, sample_project, db_session):
+        """POST with negative actual_hours shows validation error."""
+        response = client.post(f'/projects/{sample_project.id}/edit', data={
+            'client_name': sample_project.client_name,
+            'project_name': sample_project.project_name,
+            'internal_deadline': date.today().isoformat(),
+            'assigner': sample_project.assigner,
+            'assigned_attorneys': sample_project.assigned_attorneys,
+            'priority': sample_project.priority,
+            'actual_hours': '-5'
+        })
+
+        assert response.status_code == 200
+        assert b'Actual hours cannot be negative' in response.data
+
+    def test_edit_post_with_valid_hours(self, client, sample_project, db_session):
+        """POST with valid estimated_hours and actual_hours saves correctly."""
+        response = client.post(f'/projects/{sample_project.id}/edit', data={
+            'client_name': sample_project.client_name,
+            'project_name': sample_project.project_name,
+            'internal_deadline': date.today().isoformat(),
+            'assigner': sample_project.assigner,
+            'assigned_attorneys': sample_project.assigned_attorneys,
+            'priority': sample_project.priority,
+            'estimated_hours': '10.5',
+            'actual_hours': '8.5'
+        }, follow_redirects=True)
+
+        assert response.status_code == 200
         db_session.refresh(sample_project)
-        assert sample_project.actual_hours is None
+        assert sample_project.estimated_hours == 10.5
+        assert sample_project.actual_hours == 8.5
+
+    def test_edit_post_missing_required_fields(self, client, sample_project, db_session):
+        """POST with missing required fields shows validation errors."""
+        response = client.post(f'/projects/{sample_project.id}/edit', data={
+            'client_name': '',
+            'project_name': '',
+            'internal_deadline': '',
+            'assigner': '',
+            'assigned_attorneys': '',
+            'priority': ''
+        })
+
+        assert response.status_code == 200
+        assert b'Client name is required' in response.data
+        assert b'Project name is required' in response.data
+        assert b'Internal deadline is required' in response.data
+
+    def test_edit_post_invalid_date(self, client, sample_project, db_session):
+        """POST with invalid date format shows validation error."""
+        response = client.post(f'/projects/{sample_project.id}/edit', data={
+            'client_name': sample_project.client_name,
+            'project_name': sample_project.project_name,
+            'internal_deadline': 'bad-date',
+            'assigner': sample_project.assigner,
+            'assigned_attorneys': sample_project.assigned_attorneys,
+            'priority': sample_project.priority
+        })
+
+        assert response.status_code == 200
+        assert b'Internal deadline must be a valid date' in response.data
+
+    def test_edit_post_invalid_priority(self, client, sample_project, db_session):
+        """POST with invalid priority value shows validation error."""
+        response = client.post(f'/projects/{sample_project.id}/edit', data={
+            'client_name': sample_project.client_name,
+            'project_name': sample_project.project_name,
+            'internal_deadline': date.today().isoformat(),
+            'assigner': sample_project.assigner,
+            'assigned_attorneys': sample_project.assigned_attorneys,
+            'priority': 'invalid'
+        })
+
+        assert response.status_code == 200
+        assert b'Priority must be high, medium, or low' in response.data
+
+    def test_edit_post_invalid_hard_deadline(self, client, sample_project, db_session):
+        """POST with invalid hard_deadline format shows validation error."""
+        response = client.post(f'/projects/{sample_project.id}/edit', data={
+            'client_name': sample_project.client_name,
+            'project_name': sample_project.project_name,
+            'hard_deadline': 'not-a-date',
+            'internal_deadline': date.today().isoformat(),
+            'assigner': sample_project.assigner,
+            'assigned_attorneys': sample_project.assigned_attorneys,
+            'priority': sample_project.priority
+        })
+
+        assert response.status_code == 200
+        assert b'Hard deadline must be a valid date' in response.data
 
     def test_edit_form_shows_actual_hours_field(self, client, sample_project, db_session):
         """Edit form shows actual_hours field."""
@@ -607,14 +871,26 @@ class TestProjectArchive:
         assert sample_project.actual_hours is None
 
     def test_archive_post_with_invalid_actual_hours(self, client, sample_project, db_session):
-        """Archive POST with invalid actual_hours ignores the value."""
-        client.post(f'/projects/{sample_project.id}/archive', data={
+        """Archive POST with invalid actual_hours shows validation error."""
+        response = client.post(f'/projects/{sample_project.id}/archive', data={
             'actual_hours': 'not-a-number'
         })
 
+        assert response.status_code == 200
+        assert b'Actual hours must be a valid number' in response.data
         db_session.refresh(sample_project)
-        assert sample_project.status == 'archived'
-        assert sample_project.actual_hours is None
+        assert sample_project.status == 'active'  # Not archived due to error
+
+    def test_archive_post_with_negative_actual_hours(self, client, sample_project, db_session):
+        """Archive POST with negative actual_hours shows validation error."""
+        response = client.post(f'/projects/{sample_project.id}/archive', data={
+            'actual_hours': '-10'
+        })
+
+        assert response.status_code == 200
+        assert b'Actual hours cannot be negative' in response.data
+        db_session.refresh(sample_project)
+        assert sample_project.status == 'active'  # Not archived due to error
 
 
 class TestProjectUnarchive:

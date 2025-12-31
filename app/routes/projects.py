@@ -74,38 +74,86 @@ def list():
 def new():
     """Create a new project."""
     if request.method == 'POST':
+        # Get form data
+        client_name = request.form.get('client_name', '').strip()
+        project_name = request.form.get('project_name', '').strip()
+        matter_number = request.form.get('matter_number', '').strip() or None
+        hard_deadline_str = request.form.get('hard_deadline', '').strip()
+        internal_deadline_str = request.form.get('internal_deadline', '').strip()
+        assigner = request.form.get('assigner', '').strip()
+        assigned_attorneys = request.form.get('assigned_attorneys', '').strip()
+        priority = request.form.get('priority', '').strip()
+        estimated_hours_str = request.form.get('estimated_hours', '').strip()
+        initial_update = request.form.get('initial_update', '').strip()
+
+        # Validate required fields
+        errors = []
+        if not client_name:
+            errors.append('Client name is required.')
+        if not project_name:
+            errors.append('Project name is required.')
+        if not internal_deadline_str:
+            errors.append('Internal deadline is required.')
+        if not assigner:
+            errors.append('Assigner is required.')
+        if not assigned_attorneys:
+            errors.append('Assigned attorneys is required.')
+        if not priority:
+            errors.append('Priority is required.')
+        elif priority not in ('high', 'medium', 'low'):
+            errors.append('Priority must be high, medium, or low.')
+
         # Parse date fields
         hard_deadline = None
-        if request.form.get('hard_deadline'):
-            hard_deadline = datetime.strptime(request.form['hard_deadline'], '%Y-%m-%d').date()
+        if hard_deadline_str:
+            try:
+                hard_deadline = datetime.strptime(hard_deadline_str, '%Y-%m-%d').date()
+            except ValueError:
+                errors.append('Hard deadline must be a valid date (YYYY-MM-DD).')
 
-        internal_deadline = datetime.strptime(request.form['internal_deadline'], '%Y-%m-%d').date()
+        internal_deadline = None
+        if internal_deadline_str:
+            try:
+                internal_deadline = datetime.strptime(internal_deadline_str, '%Y-%m-%d').date()
+            except ValueError:
+                errors.append('Internal deadline must be a valid date (YYYY-MM-DD).')
 
         # Parse optional estimated_hours
         estimated_hours = None
-        if request.form.get('estimated_hours'):
-            estimated_hours = float(request.form['estimated_hours'])
+        if estimated_hours_str:
+            try:
+                estimated_hours = float(estimated_hours_str)
+                if estimated_hours < 0:
+                    errors.append('Estimated hours cannot be negative.')
+            except ValueError:
+                errors.append('Estimated hours must be a valid number.')
+
+        # If validation errors, flash them and re-render form
+        if errors:
+            for error in errors:
+                flash(error, 'error')
+            return render_template('projects/form.html', project=None)
 
         # Create project
         project = Project(
-            client_name=request.form['client_name'],
-            project_name=request.form['project_name'],
-            matter_number=request.form.get('matter_number') or None,
+            client_name=client_name,
+            project_name=project_name,
+            matter_number=matter_number,
             hard_deadline=hard_deadline,
             internal_deadline=internal_deadline,
-            assigner=request.form['assigner'],
-            assigned_attorneys=request.form['assigned_attorneys'],
-            priority=request.form['priority'],
+            assigner=assigner,
+            assigned_attorneys=assigned_attorneys,
+            priority=priority,
             estimated_hours=estimated_hours
         )
         db.session.add(project)
         db.session.flush()  # Get the project ID before committing
 
         # Create initial status update if provided
-        if request.form.get('initial_update'):
+        if initial_update:
             status_update = StatusUpdate(
                 project_id=project.id,
-                notes=request.form['initial_update']
+                notes=initial_update
             )
             db.session.add(status_update)
 
@@ -128,37 +176,84 @@ def edit(id):
     """Edit a project."""
     project = Project.query.get_or_404(id)
     if request.method == 'POST':
+        # Get form data
+        client_name = request.form.get('client_name', '').strip()
+        project_name = request.form.get('project_name', '').strip()
+        matter_number = request.form.get('matter_number', '').strip() or None
+        hard_deadline_str = request.form.get('hard_deadline', '').strip()
+        internal_deadline_str = request.form.get('internal_deadline', '').strip()
+        assigner = request.form.get('assigner', '').strip()
+        assigned_attorneys = request.form.get('assigned_attorneys', '').strip()
+        priority = request.form.get('priority', '').strip()
+        estimated_hours_str = request.form.get('estimated_hours', '').strip()
+        actual_hours_str = request.form.get('actual_hours', '').strip()
+
+        # Validate required fields
+        errors = []
+        if not client_name:
+            errors.append('Client name is required.')
+        if not project_name:
+            errors.append('Project name is required.')
+        if not internal_deadline_str:
+            errors.append('Internal deadline is required.')
+        if not assigner:
+            errors.append('Assigner is required.')
+        if not assigned_attorneys:
+            errors.append('Assigned attorneys is required.')
+        if not priority:
+            errors.append('Priority is required.')
+        elif priority not in ('high', 'medium', 'low'):
+            errors.append('Priority must be high, medium, or low.')
+
         # Parse date fields
         hard_deadline = None
-        if request.form.get('hard_deadline'):
-            hard_deadline = datetime.strptime(request.form['hard_deadline'], '%Y-%m-%d').date()
+        if hard_deadline_str:
+            try:
+                hard_deadline = datetime.strptime(hard_deadline_str, '%Y-%m-%d').date()
+            except ValueError:
+                errors.append('Hard deadline must be a valid date (YYYY-MM-DD).')
 
-        internal_deadline = datetime.strptime(request.form['internal_deadline'], '%Y-%m-%d').date()
+        internal_deadline = None
+        if internal_deadline_str:
+            try:
+                internal_deadline = datetime.strptime(internal_deadline_str, '%Y-%m-%d').date()
+            except ValueError:
+                errors.append('Internal deadline must be a valid date (YYYY-MM-DD).')
 
         # Parse optional float fields
         estimated_hours = None
-        if request.form.get('estimated_hours'):
+        if estimated_hours_str:
             try:
-                estimated_hours = float(request.form['estimated_hours'])
+                estimated_hours = float(estimated_hours_str)
+                if estimated_hours < 0:
+                    errors.append('Estimated hours cannot be negative.')
             except ValueError:
-                pass
+                errors.append('Estimated hours must be a valid number.')
 
         actual_hours = None
-        if request.form.get('actual_hours'):
+        if actual_hours_str:
             try:
-                actual_hours = float(request.form['actual_hours'])
+                actual_hours = float(actual_hours_str)
+                if actual_hours < 0:
+                    errors.append('Actual hours cannot be negative.')
             except ValueError:
-                pass
+                errors.append('Actual hours must be a valid number.')
+
+        # If validation errors, flash them and re-render form
+        if errors:
+            for error in errors:
+                flash(error, 'error')
+            return render_template('projects/form.html', project=project)
 
         # Update project fields
-        project.client_name = request.form['client_name']
-        project.project_name = request.form['project_name']
-        project.matter_number = request.form.get('matter_number') or None
+        project.client_name = client_name
+        project.project_name = project_name
+        project.matter_number = matter_number
         project.hard_deadline = hard_deadline
         project.internal_deadline = internal_deadline
-        project.assigner = request.form['assigner']
-        project.assigned_attorneys = request.form['assigned_attorneys']
-        project.priority = request.form['priority']
+        project.assigner = assigner
+        project.assigned_attorneys = assigned_attorneys
+        project.priority = priority
         project.estimated_hours = estimated_hours
         project.actual_hours = actual_hours
         project.updated_at = datetime.utcnow()
@@ -176,13 +271,21 @@ def archive(id):
     project = Project.query.get_or_404(id)
 
     if request.method == 'POST':
-        # Parse optional actual_hours
-        if request.form.get('actual_hours'):
-            try:
-                project.actual_hours = float(request.form['actual_hours'])
-            except ValueError:
-                pass
+        actual_hours_str = request.form.get('actual_hours', '').strip()
 
+        # Validate actual_hours if provided
+        actual_hours = project.actual_hours  # Keep existing value by default
+        if actual_hours_str:
+            try:
+                actual_hours = float(actual_hours_str)
+                if actual_hours < 0:
+                    flash('Actual hours cannot be negative.', 'error')
+                    return render_template('projects/archive_form.html', project=project)
+            except ValueError:
+                flash('Actual hours must be a valid number.', 'error')
+                return render_template('projects/archive_form.html', project=project)
+
+        project.actual_hours = actual_hours
         project.status = 'archived'
         project.updated_at = datetime.utcnow()
         db.session.commit()
