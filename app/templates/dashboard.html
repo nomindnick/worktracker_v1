@@ -8,22 +8,73 @@
 
     <section class="dashboard-section">
         <h2>Follow-ups Due Today</h2>
-        <p class="placeholder">Follow-ups due today will appear here.</p>
+        {% if followups_today %}
+        <ul class="followup-list">
+            {% for followup in followups_today %}
+            <li>
+                <span class="target-name">{{ followup.target_name }}</span>
+                <span class="project-name">({{ followup.project.client_name }}: {{ followup.project.project_name }})</span>
+                {% if followup.notes %}<span class="notes">{{ followup.notes }}</span>{% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="placeholder">No follow-ups due today.</p>
+        {% endif %}
     </section>
 
     <section class="dashboard-section">
         <h2>Overdue Follow-ups</h2>
-        <p class="placeholder">Overdue follow-ups will appear here.</p>
+        {% if followups_overdue %}
+        <ul class="followup-list">
+            {% for followup in followups_overdue %}
+            <li>
+                <span class="target-name">{{ followup.target_name }}</span>
+                <span class="due-date">(Due: {{ followup.due_date }})</span>
+                <span class="project-name">({{ followup.project.client_name }}: {{ followup.project.project_name }})</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="placeholder">No overdue follow-ups.</p>
+        {% endif %}
     </section>
 
     <section class="dashboard-section">
         <h2>Upcoming Deadlines</h2>
-        <p class="placeholder">Projects with deadlines in the next 7 days will appear here.</p>
+        {% if upcoming_deadlines %}
+        <ul class="deadline-list">
+            {% for project in upcoming_deadlines %}
+            <li>
+                <span class="client-name">{{ project.client_name }}</span>:
+                <span class="project-name">{{ project.project_name }}</span>
+                {% if project.hard_deadline %}
+                <span class="hard-deadline">(Hard: {{ project.hard_deadline }})</span>
+                {% endif %}
+                <span class="internal-deadline">(Internal: {{ project.internal_deadline }})</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="placeholder">No upcoming deadlines in the next 7 days.</p>
+        {% endif %}
     </section>
 
     <section class="dashboard-section">
         <h2>Dusty Projects</h2>
-        <p class="placeholder">Projects with no recent updates will appear here.</p>
+        {% if dusty_projects %}
+        <ul class="dusty-list">
+            {% for project in dusty_projects %}
+            <li class="staleness-{{ project.staleness_level }}">
+                <span class="client-name">{{ project.client_name }}</span>:
+                <span class="project-name">{{ project.project_name }}</span>
+                <span class="days-stale">({{ project.days_since_update }} days without update)</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="placeholder">No dusty projects.</p>
+        {% endif %}
     </section>
 </div>
 {% endblock %}

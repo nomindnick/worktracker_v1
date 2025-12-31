@@ -36,7 +36,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | Phase 1: Foundation | Complete | 5/5 |
 | Phase 2: Status Updates | Complete | 2/2 |
 | Phase 3: Follow-ups | Complete | 3/3 |
-| Phase 4: Dashboard | Not Started | 0/2 |
+| Phase 4: Dashboard | In Progress | 1/2 |
 | Phase 5: Export & Archive | Not Started | 0/2 |
 | Phase 6: Polish | Not Started | 0/3 |
 
@@ -59,7 +59,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 - [x] Sprint 3.3: Integrate into project views
 
 #### Phase 4: Dashboard
-- [ ] Sprint 4.1: Dashboard route and query logic
+- [x] Sprint 4.1: Dashboard route and query logic
 - [ ] Sprint 4.2: Dashboard template and styling
 
 #### Phase 5: Export & Archive
@@ -90,6 +90,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-30 | 3.1 | Follow-up routes (Create/List) complete - implemented GET/POST /followups/new with project dropdown, project pre-selection via query param, form validation, and database creation. Added GET /projects/<id>/followups/new redirect route. Updated form.html template with project dropdown. | All verification criteria met: can view pending followups list, create followup from standalone form, create followup from project context with pre-selection. 123 tests, 100% coverage. |
 | 2025-12-31 | 3.2 | Follow-up routes (Complete/Snooze) and form complete - implemented POST /followups/<id>/complete to mark follow-ups complete (sets completed=True, completed_at timestamp). Implemented POST /followups/<id>/snooze to update due_date by specified days (defaults to 1 day). Form template with quick-set date buttons and JavaScript was already in place from previous work. | All verification criteria met: can mark follow-up complete, completed follow-ups disappear from pending list, snooze updates due_date correctly, quick-set buttons work. Added 6 new tests for complete/snooze functionality. 130 tests total, 100% coverage. |
 | 2025-12-31 | 3.3 | Follow-ups integrated into project views - added helper methods to Project model (get_pending_followups, get_completed_followups, pending_followup_count, next_followup). Updated projects/detail.html to display pending and completed follow-ups with Complete/Snooze action buttons. Updated projects/list.html to show Pending Follow-ups count and Next Follow-up date columns. Add Follow-up button was already present. | All verification criteria met: project detail shows all follow-ups with action buttons, can complete/snooze directly from detail, project list shows follow-up summary columns. Added 14 new tests (8 model tests, 6 route tests). 144 tests total, 100% coverage. **Phase 3 Follow-ups complete.** |
+| 2025-12-30 | 4.1 | Dashboard route and query logic complete - implemented 4 dashboard categories: follow-ups due today, overdue follow-ups, upcoming deadlines (within 7 days), and dusty projects (7+ days without update). Updated dashboard.html template to render data. Queries join to Project to exclude archived projects' follow-ups. Dusty projects use existing model staleness_level property. | All verification criteria met: route returns correct data for each category, staleness calculation uses efficient model properties, edge cases handled. Added 22 new dashboard tests. 166 tests total, 100% coverage. |
 
 ---
 
@@ -109,7 +110,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | tests/test_config.py | Testing | Configuration tests (6 tests) |
 | tests/test_app_factory.py | Testing | App factory and CLI tests (10 tests) |
 | tests/test_models.py | Testing | Model tests (14 tests) |
-| tests/routes/test_dashboard.py | Testing | Dashboard route tests (2 tests) |
+| tests/routes/test_dashboard.py | Testing | Dashboard route tests (24 tests) |
 | tests/routes/test_projects.py | Testing | Project CRUD tests (31 tests) |
 | tests/routes/test_followups.py | Testing | Follow-up route tests (11 tests) |
 | tests/routes/test_updates.py | Testing | Status update route tests (2 tests) |
