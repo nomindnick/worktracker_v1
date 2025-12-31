@@ -441,3 +441,46 @@ body {
     background: #dcfce7;
     border-left: 4px solid var(--color-success);
 }
+
+.urgency-info {
+    background: #dbeafe;
+    border-left: 4px solid var(--color-primary);
+}
+
+/* Dashboard List Styling */
+.dashboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dashboard-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.dashboard-list li:last-child {
+    border-bottom: none;
+}
+
+.dashboard-list .item-info {
+    flex: 1;
+}
+
+.dashboard-list .item-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Dusty Project Gradient */
+.dashboard-list li.staleness-warning {
+    background: linear-gradient(90deg, rgba(254, 243, 199, 0.5) 0%, transparent 50%);
+}
+
+.dashboard-list li.staleness-critical {
+    background: linear-gradient(90deg, rgba(254, 226, 226, 0.5) 0%, transparent 50%);
+}

@@ -480,3 +480,202 @@ class TestDustyProjects:
         assert more_dusty_pos != -1
         assert less_dusty_pos != -1
         assert more_dusty_pos < less_dusty_pos
+
+
+class TestDashboardTemplateRendering:
+    """Test dashboard template CSS classes and quick actions."""
+
+    def test_overdue_section_has_urgency_critical_class(self, client, db_session):
+        """Overdue follow-ups section has urgency-critical CSS class."""
+        response = client.get('/')
+        assert b'urgency-critical' in response.data
+
+    def test_today_section_has_urgency_warning_class(self, client, db_session):
+        """Due today section has urgency-warning CSS class."""
+        response = client.get('/')
+        assert b'urgency-warning' in response.data
+
+    def test_deadlines_section_has_urgency_info_class(self, client, db_session):
+        """Upcoming deadlines section has urgency-info CSS class."""
+        response = client.get('/')
+        assert b'urgency-info' in response.data
+
+    def test_followup_today_has_complete_button(self, client, db_session):
+        """Follow-up due today has Complete button."""
+        project = Project(
+            client_name='Test Client',
+            project_name='Test Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney'
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        followup = FollowUp(
+            project_id=project.id,
+            target_type='client',
+            target_name='Today Followup',
+            due_date=date.today()
+        )
+        db_session.add(followup)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert f'/followups/{followup.id}/complete' in data
+        assert 'Complete' in data
+
+    def test_followup_today_has_snooze_button(self, client, db_session):
+        """Follow-up due today has Snooze button."""
+        project = Project(
+            client_name='Test Client',
+            project_name='Test Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney'
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        followup = FollowUp(
+            project_id=project.id,
+            target_type='client',
+            target_name='Today Followup',
+            due_date=date.today()
+        )
+        db_session.add(followup)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert f'/followups/{followup.id}/snooze' in data
+        assert 'Snooze' in data
+
+    def test_followup_today_has_view_link(self, client, db_session):
+        """Follow-up due today has View project link."""
+        project = Project(
+            client_name='Test Client',
+            project_name='Test Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney'
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        followup = FollowUp(
+            project_id=project.id,
+            target_type='client',
+            target_name='Today Followup',
+            due_date=date.today()
+        )
+        db_session.add(followup)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert f'/projects/{project.id}' in data
+
+    def test_overdue_followup_has_action_buttons(self, client, db_session):
+        """Overdue follow-up has Complete, Snooze, and View buttons."""
+        project = Project(
+            client_name='Test Client',
+            project_name='Test Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney'
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        followup = FollowUp(
+            project_id=project.id,
+            target_type='client',
+            target_name='Overdue Followup',
+            due_date=date.today() - timedelta(days=3)
+        )
+        db_session.add(followup)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert f'/followups/{followup.id}/complete' in data
+        assert f'/followups/{followup.id}/snooze' in data
+        assert f'/projects/{project.id}' in data
+
+    def test_deadline_project_has_view_link(self, client, db_session):
+        """Project with upcoming deadline has View link."""
+        project = Project(
+            client_name='Deadline Client',
+            project_name='Deadline Project',
+            internal_deadline=date.today() + timedelta(days=5),
+            assigned_attorneys='Test Attorney'
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert f'/projects/{project.id}' in data
+
+    def test_dusty_project_has_add_update_link(self, client, db_session):
+        """Dusty project has Add Update link with project pre-selection."""
+        project = Project(
+            client_name='Dusty Client',
+            project_name='Dusty Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney',
+            created_at=datetime.utcnow() - timedelta(days=10)
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert f'/updates/new?project_id={project.id}' in data
+        assert 'Add Update' in data
+
+    def test_dusty_project_has_view_link(self, client, db_session):
+        """Dusty project has View link."""
+        project = Project(
+            client_name='Dusty Client',
+            project_name='Dusty Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney',
+            created_at=datetime.utcnow() - timedelta(days=10)
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert f'/projects/{project.id}' in data
+
+    def test_dusty_project_has_staleness_class(self, client, db_session):
+        """Dusty project item has staleness CSS class."""
+        project = Project(
+            client_name='Dusty Client',
+            project_name='Dusty Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney',
+            created_at=datetime.utcnow() - timedelta(days=10)
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert 'staleness-warning' in data
+
+    def test_critical_dusty_project_has_critical_class(self, client, db_session):
+        """Critical dusty project has staleness-critical CSS class."""
+        project = Project(
+            client_name='Critical Dusty Client',
+            project_name='Critical Dusty Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney',
+            created_at=datetime.utcnow() - timedelta(days=20)
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert 'staleness-critical' in data
