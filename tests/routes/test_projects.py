@@ -982,6 +982,30 @@ class TestArchivedList:
         assert b'40' in response.data
         assert b'45.5' in response.data
 
+    def test_archived_list_shows_all_spec_columns(self, client, sample_project, db_session):
+        """Archived list shows all columns per spec: same as active list plus hours."""
+        from datetime import date
+        sample_project.status = 'archived'
+        sample_project.hard_deadline = date(2025, 2, 15)
+        sample_project.internal_deadline = date(2025, 2, 1)
+        sample_project.assigned_attorneys = 'Alice, Bob'
+        sample_project.priority = 'high'
+        db_session.commit()
+
+        response = client.get('/projects/archived')
+
+        # Verify column headers exist
+        assert b'Hard Deadline' in response.data
+        assert b'Internal Deadline' in response.data
+        assert b'Attorneys' in response.data
+        assert b'Priority' in response.data
+
+        # Verify data is displayed
+        assert b'2025-02-15' in response.data
+        assert b'2025-02-01' in response.data
+        assert b'Alice, Bob' in response.data
+        assert b'high' in response.data
+
     def test_archived_list_shows_unarchive_button(self, client, sample_project, db_session):
         """Archived list shows Unarchive button."""
         sample_project.status = 'archived'
@@ -1131,6 +1155,115 @@ class TestProjectListFiltering:
 
         assert b'Client One' in response.data
         assert b'Client Two' in response.data
+
+    def test_list_filter_by_deadline_from(self, client, db_session):
+        """Filter by deadline_from shows projects with deadline >= from date."""
+        from app.models import Project
+
+        future = Project(client_name='Future Client', project_name='Future Project',
+                        internal_deadline=date.today() + timedelta(days=30),
+                        assigner='Self', assigned_attorneys='Me', priority='medium')
+        past = Project(client_name='Past Client', project_name='Past Project',
+                      internal_deadline=date.today() - timedelta(days=30),
+                      assigner='Self', assigned_attorneys='Me', priority='medium')
+        db_session.add_all([future, past])
+        db_session.commit()
+
+        from_date = (date.today() + timedelta(days=1)).isoformat()
+        response = client.get(f'/projects/?deadline_from={from_date}')
+
+        assert b'Future Client' in response.data
+        assert b'Past Client' not in response.data
+
+    def test_list_filter_by_deadline_to(self, client, db_session):
+        """Filter by deadline_to shows projects with deadline <= to date."""
+        from app.models import Project
+
+        future = Project(client_name='Future Client', project_name='Future Project',
+                        internal_deadline=date.today() + timedelta(days=30),
+                        assigner='Self', assigned_attorneys='Me', priority='medium')
+        soon = Project(client_name='Soon Client', project_name='Soon Project',
+                      internal_deadline=date.today() + timedelta(days=5),
+                      assigner='Self', assigned_attorneys='Me', priority='medium')
+        db_session.add_all([future, soon])
+        db_session.commit()
+
+        to_date = (date.today() + timedelta(days=10)).isoformat()
+        response = client.get(f'/projects/?deadline_to={to_date}')
+
+        assert b'Soon Client' in response.data
+        assert b'Future Client' not in response.data
+
+    def test_list_filter_by_deadline_range(self, client, db_session):
+        """Filter by both deadline_from and deadline_to shows projects in range."""
+        from app.models import Project
+
+        before = Project(client_name='Before Client', project_name='Before Project',
+                        internal_deadline=date.today() + timedelta(days=5),
+                        assigner='Self', assigned_attorneys='Me', priority='medium')
+        within = Project(client_name='Within Client', project_name='Within Project',
+                        internal_deadline=date.today() + timedelta(days=15),
+                        assigner='Self', assigned_attorneys='Me', priority='medium')
+        after = Project(client_name='After Client', project_name='After Project',
+                       internal_deadline=date.today() + timedelta(days=30),
+                       assigner='Self', assigned_attorneys='Me', priority='medium')
+        db_session.add_all([before, within, after])
+        db_session.commit()
+
+        from_date = (date.today() + timedelta(days=10)).isoformat()
+        to_date = (date.today() + timedelta(days=20)).isoformat()
+        response = client.get(f'/projects/?deadline_from={from_date}&deadline_to={to_date}')
+
+        assert b'Within Client' in response.data
+        assert b'Before Client' not in response.data
+        assert b'After Client' not in response.data
+
+    def test_list_filter_deadline_from_invalid_date_ignored(self, client, db_session):
+        """Invalid deadline_from filter date is ignored."""
+        from app.models import Project
+
+        project = Project(client_name='Test Client', project_name='Test Project',
+                         internal_deadline=date.today() + timedelta(days=10),
+                         assigner='Self', assigned_attorneys='Me', priority='medium')
+        db_session.add(project)
+        db_session.commit()
+
+        # Invalid date format should be ignored, project should still appear
+        response = client.get('/projects/?deadline_from=invalid-date')
+
+        assert b'Test Client' in response.data
+
+    def test_list_filter_deadline_to_invalid_date_ignored(self, client, db_session):
+        """Invalid deadline_to filter date is ignored."""
+        from app.models import Project
+
+        project = Project(client_name='Test Client', project_name='Test Project',
+                         internal_deadline=date.today() + timedelta(days=10),
+                         assigner='Self', assigned_attorneys='Me', priority='medium')
+        db_session.add(project)
+        db_session.commit()
+
+        # Invalid date format should be ignored, project should still appear
+        response = client.get('/projects/?deadline_to=invalid-date')
+
+        assert b'Test Client' in response.data
+
+    def test_list_deadline_filter_inputs_appear(self, client, db_session):
+        """Deadline filter inputs appear in template."""
+        from app.models import Project
+
+        project = Project(client_name='Test', project_name='Test',
+                         internal_deadline=date.today(), assigner='Self',
+                         assigned_attorneys='Me', priority='medium')
+        db_session.add(project)
+        db_session.commit()
+
+        response = client.get('/projects/')
+
+        assert b'deadline_from' in response.data
+        assert b'deadline_to' in response.data
+        assert b'Deadline From' in response.data
+        assert b'Deadline To' in response.data
 
 
 class TestProjectListSorting:
@@ -1320,6 +1453,61 @@ class TestProjectListSorting:
         early_pos = response.data.find(b'High Early')
         late_pos = response.data.find(b'High Late')
         assert early_pos < late_pos
+
+    def test_list_sort_by_client_name_asc(self, client, db_session):
+        """Sort by client_name ascending (A-Z)."""
+        from app.models import Project
+
+        zebra = Project(client_name='Zebra Corp', project_name='Zebra Project',
+                       internal_deadline=date.today(), assigner='Self',
+                       assigned_attorneys='Me', priority='medium')
+        acme = Project(client_name='Acme Inc', project_name='Acme Project',
+                      internal_deadline=date.today(), assigner='Self',
+                      assigned_attorneys='Me', priority='medium')
+        db_session.add_all([zebra, acme])
+        db_session.commit()
+
+        response = client.get('/projects/?sort_by=client_name&sort_order=asc')
+
+        # Acme should appear before Zebra (alphabetical)
+        acme_pos = response.data.find(b'Acme Inc')
+        zebra_pos = response.data.find(b'Zebra Corp')
+        assert acme_pos < zebra_pos
+
+    def test_list_sort_by_client_name_desc(self, client, db_session):
+        """Sort by client_name descending (Z-A)."""
+        from app.models import Project
+
+        zebra = Project(client_name='Zebra Corp', project_name='Zebra Project',
+                       internal_deadline=date.today(), assigner='Self',
+                       assigned_attorneys='Me', priority='medium')
+        acme = Project(client_name='Acme Inc', project_name='Acme Project',
+                      internal_deadline=date.today(), assigner='Self',
+                      assigned_attorneys='Me', priority='medium')
+        db_session.add_all([zebra, acme])
+        db_session.commit()
+
+        response = client.get('/projects/?sort_by=client_name&sort_order=desc')
+
+        # Zebra should appear before Acme (reverse alphabetical)
+        acme_pos = response.data.find(b'Acme Inc')
+        zebra_pos = response.data.find(b'Zebra Corp')
+        assert zebra_pos < acme_pos
+
+    def test_list_client_name_sort_link_appears(self, client, db_session):
+        """Client column has sortable link in template."""
+        from app.models import Project
+
+        project = Project(client_name='Test Client', project_name='Test',
+                         internal_deadline=date.today(), assigner='Self',
+                         assigned_attorneys='Me', priority='medium')
+        db_session.add(project)
+        db_session.commit()
+
+        response = client.get('/projects/')
+
+        # Sort link should contain client_name parameter
+        assert b'sort_by=client_name' in response.data
 
 
 class TestProjectListTemplateContext:

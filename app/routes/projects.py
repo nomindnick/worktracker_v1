@@ -13,6 +13,8 @@ def list():
     priority = request.args.get('priority', '')
     attorney = request.args.get('attorney', '')
     assigner = request.args.get('assigner', '')
+    deadline_from = request.args.get('deadline_from', '')
+    deadline_to = request.args.get('deadline_to', '')
     sort_by = request.args.get('sort_by', 'internal_deadline')
     sort_order = request.args.get('sort_order', 'asc')
 
@@ -26,8 +28,23 @@ def list():
     if assigner:
         query = query.filter(Project.assigner == assigner)
 
+    # Parse and apply deadline range filter
+    if deadline_from:
+        try:
+            from_date = datetime.strptime(deadline_from, '%Y-%m-%d').date()
+            query = query.filter(Project.internal_deadline >= from_date)
+        except ValueError:
+            pass  # Invalid date format, ignore filter
+
+    if deadline_to:
+        try:
+            to_date = datetime.strptime(deadline_to, '%Y-%m-%d').date()
+            query = query.filter(Project.internal_deadline <= to_date)
+        except ValueError:
+            pass  # Invalid date format, ignore filter
+
     # Validate sort column - only allow specific columns
-    allowed_sort_columns = ['internal_deadline', 'priority', 'staleness']
+    allowed_sort_columns = ['internal_deadline', 'priority', 'staleness', 'client_name']
     if sort_by not in allowed_sort_columns:
         sort_by = 'internal_deadline'
 
@@ -65,6 +82,8 @@ def list():
                               'priority': priority,
                               'attorney': attorney,
                               'assigner': assigner,
+                              'deadline_from': deadline_from,
+                              'deadline_to': deadline_to,
                               'sort_by': sort_by,
                               'sort_order': sort_order
                           })
