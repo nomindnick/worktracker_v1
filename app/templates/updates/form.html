@@ -11,7 +11,11 @@
             <label for="project_id">Project *</label>
             <select id="project_id" name="project_id" required>
                 <option value="">Select a project...</option>
-                <!-- Projects will be populated here -->
+                {% for project in projects %}
+                <option value="{{ project.id }}" {% if selected_project_id == project.id %}selected{% endif %}>
+                    {{ project.client_name }}: {{ project.project_name }}
+                </option>
+                {% endfor %}
             </select>
         </div>
 

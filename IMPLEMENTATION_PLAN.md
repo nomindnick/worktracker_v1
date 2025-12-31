@@ -34,7 +34,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | Phase | Status | Sprints Completed |
 |-------|--------|-------------------|
 | Phase 1: Foundation | Complete | 5/5 |
-| Phase 2: Status Updates | Not Started | 0/2 |
+| Phase 2: Status Updates | In Progress | 1/2 |
 | Phase 3: Follow-ups | Not Started | 0/3 |
 | Phase 4: Dashboard | Not Started | 0/2 |
 | Phase 5: Export & Archive | Not Started | 0/2 |
@@ -50,7 +50,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 - [x] Sprint 1.5: Templates and styling
 
 #### Phase 2: Status Updates
-- [ ] Sprint 2.1: Status update routes and form
+- [x] Sprint 2.1: Status update routes and form
 - [ ] Sprint 2.2: Integrate into project views
 
 #### Phase 3: Follow-ups
@@ -85,6 +85,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-30 | 1.4 | Project routes (Detail/Edit/Archive) complete - implemented POST handlers for edit (update all fields) and archive (set status='archived') | All verification criteria met: detail/edit pages return 200, edit POST updates project, archive removes from active list, invalid ID returns 404 |
 | 2025-12-30 | 1.5 | Templates and styling verified complete - all templates (base.html, list.html, detail.html, form.html) and CSS (style.css, 395 lines) were created during earlier sprints | All verification criteria met: navigation renders on all pages, forms are styled, table displays correctly, priority colors work (high=red, medium=yellow, low=green). **Phase 1 Foundation complete.** |
 | 2025-12-30 | Testing | Testing infrastructure complete - 88 tests with 100% code coverage. Added pytest, pytest-cov, pytest-flask to requirements.txt. Created pyproject.toml with coverage config. Test files for config, app factory, models, and all routes. | 100% coverage enforced via fail_under=100. In-memory SQLite for fast tests. Fixtures for app, client, db_session, sample data. |
+| 2025-12-30 | 2.1 | Status update routes and form complete - GET /updates/new with project dropdown, POST /updates/new creates updates, GET /projects/<id>/updates/new redirects with pre-selection | All verification criteria met: standalone form works, project dropdown populated, pre-selection via query param, POST creates update and redirects. 100 tests, 100% coverage. |
 
 ---
 

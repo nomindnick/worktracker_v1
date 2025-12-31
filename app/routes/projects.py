@@ -122,3 +122,11 @@ def archive(id):
     db.session.commit()
     flash(f'Project "{project.project_name}" has been archived.', 'success')
     return redirect(url_for('projects.list'))
+
+
+@bp.route('/<int:id>/updates/new')
+def updates_new(id):
+    """Redirect to status update form with project pre-selected."""
+    # Verify project exists
+    Project.query.get_or_404(id)
+    return redirect(url_for('updates.new', project_id=id))
