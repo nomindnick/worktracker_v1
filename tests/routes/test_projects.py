@@ -40,10 +40,10 @@ class TestProjectList:
         assert b'Add Update' in response.data
 
     def test_list_shows_followup_columns(self, client, sample_project, db_session):
-        """Project list shows Pending Follow-ups and Next Follow-up columns."""
+        """Project list shows Follow-ups and Next Follow-up columns."""
         response = client.get('/projects/')
 
-        assert b'Pending Follow-ups' in response.data
+        assert b'>Follow-ups<' in response.data
         assert b'Next Follow-up' in response.data
 
     def test_list_shows_followup_count(self, client, sample_project, db_session):
@@ -70,6 +70,25 @@ class TestProjectList:
 
         # Should show count of 2
         assert b'>2<' in response.data
+
+    def test_list_shows_hard_deadline_column(self, client, sample_project, db_session):
+        """Project list shows Hard Deadline column."""
+        response = client.get('/projects/')
+
+        assert b'Hard Deadline' in response.data
+
+    def test_list_shows_attorneys_column(self, client, sample_project, db_session):
+        """Project list shows Attorneys column."""
+        response = client.get('/projects/')
+
+        assert b'Attorneys' in response.data
+        assert b'Associate Jones' in response.data
+
+    def test_list_shows_add_followup_button(self, client, sample_project, db_session):
+        """Project list shows Add Follow-up button for each project."""
+        response = client.get('/projects/')
+
+        assert b'Add Follow-up' in response.data
 
     def test_list_shows_next_followup_date(self, client, sample_project, db_session):
         """Project list shows next follow-up due date."""
@@ -341,6 +360,16 @@ class TestProjectDetail:
 
         assert b'Add Follow-up' in response.data
 
+    def test_detail_shows_actual_hours(self, client, sample_project, db_session):
+        """Project detail shows actual hours when set."""
+        sample_project.actual_hours = 42.5
+        db_session.commit()
+
+        response = client.get(f'/projects/{sample_project.id}')
+
+        assert b'Actual Hours' in response.data
+        assert b'42.5' in response.data
+
     def test_detail_shows_archive_button_for_active(self, client, sample_project, db_session):
         """Project detail shows Archive button for active projects."""
         response = client.get(f'/projects/{sample_project.id}')
@@ -434,6 +463,13 @@ class TestProjectEdit:
 
         db_session.refresh(sample_project)
         assert sample_project.actual_hours is None
+
+    def test_edit_form_shows_actual_hours_field(self, client, sample_project, db_session):
+        """Edit form shows actual_hours field."""
+        response = client.get(f'/projects/{sample_project.id}/edit')
+
+        assert b'actual_hours' in response.data
+        assert b'Actual Hours' in response.data
 
     def test_edit_post_updates_updated_at(self, client, sample_project, db_session):
         """POST updates the updated_at timestamp."""
