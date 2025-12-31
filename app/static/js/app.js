@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         internalDeadlineInput.value = `${year}-${month}-${day}`;
     }
 
-    // Confirm before archiving
+    // Confirm before archiving (uses native confirm for archive form page)
     const archiveForms = document.querySelectorAll('form[action*="/archive"]');
     archiveForms.forEach(function(form) {
         form.addEventListener('submit', function(e) {
@@ -43,5 +43,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
             }
         });
+    });
+
+    // Custom confirmation modal for data-confirm forms
+    const modal = document.getElementById('confirm-modal');
+    const modalMessage = document.getElementById('confirm-message');
+    const confirmOk = document.getElementById('confirm-ok');
+    const confirmCancel = document.getElementById('confirm-cancel');
+    let pendingForm = null;
+
+    // Handle forms with data-confirm attribute
+    document.querySelectorAll('form[data-confirm]').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            pendingForm = form;
+            modalMessage.textContent = form.getAttribute('data-confirm');
+            modal.style.display = 'flex';
+        });
+    });
+
+    // Modal cancel button
+    if (confirmCancel) {
+        confirmCancel.addEventListener('click', function() {
+            modal.style.display = 'none';
+            pendingForm = null;
+        });
+    }
+
+    // Modal confirm button
+    if (confirmOk) {
+        confirmOk.addEventListener('click', function() {
+            modal.style.display = 'none';
+            if (pendingForm) {
+                // Remove the data-confirm to prevent re-triggering
+                pendingForm.removeAttribute('data-confirm');
+                pendingForm.submit();
+            }
+        });
+    }
+
+    // Close modal on overlay click
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                pendingForm = null;
+            }
+        });
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+            modal.style.display = 'none';
+            pendingForm = null;
+        }
     });
 });

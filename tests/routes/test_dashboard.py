@@ -679,3 +679,65 @@ class TestDashboardTemplateRendering:
         response = client.get('/')
         data = response.data.decode('utf-8')
         assert 'staleness-critical' in data
+
+
+class TestDashboardConfirmationModal:
+    """Test confirmation modal and data-confirm attributes."""
+
+    def test_confirmation_modal_html_present(self, client, db_session):
+        """Confirmation modal HTML is present in page."""
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert 'id="confirm-modal"' in data
+        assert 'class="modal-overlay"' in data
+        assert 'id="confirm-message"' in data
+        assert 'id="confirm-ok"' in data
+        assert 'id="confirm-cancel"' in data
+
+    def test_complete_button_has_data_confirm_attribute(self, client, db_session):
+        """Complete follow-up form has data-confirm attribute."""
+        project = Project(
+            client_name='Test Client',
+            project_name='Test Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney'
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        followup = FollowUp(
+            project_id=project.id,
+            target_type='client',
+            target_name='Test Target',
+            due_date=date.today()
+        )
+        db_session.add(followup)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert 'data-confirm="Mark this follow-up as complete?"' in data
+
+    def test_overdue_complete_button_has_data_confirm(self, client, db_session):
+        """Overdue follow-up Complete button has data-confirm attribute."""
+        project = Project(
+            client_name='Test Client',
+            project_name='Test Project',
+            internal_deadline=date.today() + timedelta(days=30),
+            assigned_attorneys='Test Attorney'
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        followup = FollowUp(
+            project_id=project.id,
+            target_type='client',
+            target_name='Overdue Target',
+            due_date=date.today() - timedelta(days=3)
+        )
+        db_session.add(followup)
+        db_session.commit()
+
+        response = client.get('/')
+        data = response.data.decode('utf-8')
+        assert 'data-confirm="Mark this follow-up as complete?"' in data

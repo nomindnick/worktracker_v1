@@ -1379,3 +1379,23 @@ class TestProjectListTemplateContext:
 
         # Sort links should include priority=high
         assert b'priority=high' in response.data
+
+
+class TestProjectListUIResponsiveness:
+    """Test project list UI elements for Sprint 6.3."""
+
+    def test_list_has_table_wrapper(self, client, sample_project, db_session):
+        """Project list table is wrapped in table-wrapper div for mobile scrolling."""
+        response = client.get('/projects/')
+        data = response.data.decode('utf-8')
+        assert 'class="table-wrapper"' in data
+
+
+class TestProjectDetailUIConfirmation:
+    """Test project detail UI elements for Sprint 6.3."""
+
+    def test_detail_complete_button_has_data_confirm(self, client, sample_project, sample_followup, db_session):
+        """Complete button on project detail has data-confirm attribute."""
+        response = client.get(f'/projects/{sample_project.id}')
+        data = response.data.decode('utf-8')
+        assert 'data-confirm="Mark this follow-up as complete?"' in data

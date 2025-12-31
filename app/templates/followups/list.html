@@ -10,6 +10,7 @@
     </div>
 
     {% if followups %}
+    <div class="table-wrapper">
     <table class="data-table">
         <thead>
             <tr>
@@ -28,7 +29,7 @@
                 <td>{{ followup.due_date }}</td>
                 <td>{{ followup.notes or '-' }}</td>
                 <td>
-                    <form action="{{ url_for('followups.complete', id=followup.id) }}" method="post" style="display: inline;">
+                    <form action="{{ url_for('followups.complete', id=followup.id) }}" method="post" style="display: inline;" data-confirm="Mark this follow-up as complete?">
                         <button type="submit" class="btn btn-small btn-success">Complete</button>
                     </form>
                     <form action="{{ url_for('followups.snooze', id=followup.id) }}" method="post" style="display: inline;">
@@ -39,6 +40,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <p class="empty-state">No pending follow-ups.</p>
     {% endif %}

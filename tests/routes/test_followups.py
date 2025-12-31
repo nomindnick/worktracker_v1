@@ -320,3 +320,19 @@ class TestProjectFollowupsNew:
 
         assert response.status_code == 200
         assert b'selected' in response.data
+
+
+class TestFollowUpListUI:
+    """Test follow-up list UI elements for Sprint 6.3."""
+
+    def test_list_has_table_wrapper(self, client, sample_followup, db_session):
+        """Follow-up list table is wrapped in table-wrapper div."""
+        response = client.get('/followups/')
+        data = response.data.decode('utf-8')
+        assert 'class="table-wrapper"' in data
+
+    def test_list_complete_button_has_data_confirm(self, client, sample_followup, db_session):
+        """Complete button in follow-up list has data-confirm attribute."""
+        response = client.get('/followups/')
+        data = response.data.decode('utf-8')
+        assert 'data-confirm="Mark this follow-up as complete?"' in data
