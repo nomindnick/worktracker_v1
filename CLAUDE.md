@@ -20,6 +20,15 @@ flask init-db
 # Run development server
 flask run
 # Access at http://localhost:5000
+
+# Run tests with coverage (required before completing any sprint)
+pytest --cov=app --cov=config --cov-report=term-missing --cov-fail-under=100
+
+# Run tests with HTML coverage report
+pytest --cov=app --cov=config --cov-report=html
+
+# Run specific test file
+pytest tests/routes/test_projects.py -v
 ```
 
 ## Architecture
@@ -40,6 +49,12 @@ app/
 ├── templates/           # Jinja2 templates
 └── static/              # CSS and minimal JS
 data/                    # SQLite database (worklist.db)
+tests/                   # Test suite (pytest)
+├── conftest.py          # Shared fixtures
+├── test_config.py       # Config tests
+├── test_app_factory.py  # App factory tests
+├── test_models.py       # Model tests
+└── routes/              # Route tests (one per blueprint)
 ```
 
 **Data Model:**
@@ -62,6 +77,27 @@ data/                    # SQLite database (worklist.db)
 **CSV Export:** Active projects with latest status and next follow-up, filename pattern `worklist_YYYY-MM-DD.csv`
 
 **Database Location:** Defaults to `./data/`, overridable via `WORKLIST_DATA_DIR` environment variable
+
+## Testing Requirements
+
+**100% code coverage is required.** Tests must pass with full coverage before any sprint is considered complete.
+
+**Test Infrastructure:**
+- **pytest** with pytest-cov for coverage
+- **In-memory SQLite** for fast test execution
+- **Fixtures** in `tests/conftest.py`: `app`, `client`, `db_session`, `sample_project`, `sample_followup`, `runner`
+
+**Sprint Completion Checklist:**
+1. Write/update tests for new functionality
+2. Run `pytest --cov=app --cov=config --cov-report=term-missing --cov-fail-under=100`
+3. All tests must pass with 100% coverage
+4. Update IMPLEMENTATION_PLAN.md with sprint completion details
+
+**Test Organization:**
+- `test_config.py` - Configuration loading tests
+- `test_app_factory.py` - App factory and CLI command tests
+- `test_models.py` - Model creation, relationships, cascade deletes
+- `tests/routes/test_*.py` - One test file per blueprint
 
 ## Reference Documents
 

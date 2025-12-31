@@ -4,8 +4,15 @@
 
 ## Instructions for Claude Code
 
-**IMPORTANT:** After completing each sprint, you MUST update this document:
+**IMPORTANT:** After completing each sprint, you MUST:
 
+### 1. Write/Update Tests
+- Write tests for all new functionality
+- Update existing tests if behavior changed
+- Run: `pytest --cov=app --cov=config --cov-report=term-missing --cov-fail-under=100`
+- **All tests must pass with 100% code coverage** before the sprint is complete
+
+### 2. Update This Document
 1. Mark the completed sprint checkbox as `[x]`
 2. Add a completion entry in the **Progress Log** section with:
    - Date completed
@@ -77,6 +84,7 @@ This ensures future Claude Code sessions understand what has been done and can c
 | 2025-12-30 | 1.3 | Project routes (Create/List) complete - implemented POST /projects handler with form parsing, date conversion, and optional initial status update creation | All verification criteria met: GET /projects returns 200, GET /projects/new shows form, POST creates project in database |
 | 2025-12-30 | 1.4 | Project routes (Detail/Edit/Archive) complete - implemented POST handlers for edit (update all fields) and archive (set status='archived') | All verification criteria met: detail/edit pages return 200, edit POST updates project, archive removes from active list, invalid ID returns 404 |
 | 2025-12-30 | 1.5 | Templates and styling verified complete - all templates (base.html, list.html, detail.html, form.html) and CSS (style.css, 395 lines) were created during earlier sprints | All verification criteria met: navigation renders on all pages, forms are styled, table displays correctly, priority colors work (high=red, medium=yellow, low=green). **Phase 1 Foundation complete.** |
+| 2025-12-30 | Testing | Testing infrastructure complete - 88 tests with 100% code coverage. Added pytest, pytest-cov, pytest-flask to requirements.txt. Created pyproject.toml with coverage config. Test files for config, app factory, models, and all routes. | 100% coverage enforced via fail_under=100. In-memory SQLite for fast tests. Fixtures for app, client, db_session, sample data. |
 
 ---
 
@@ -86,11 +94,21 @@ This ensures future Claude Code sessions understand what has been done and can c
 
 | File | Sprint | Purpose |
 |------|--------|---------|
-| requirements.txt | 1.1 | Python dependencies |
+| requirements.txt | 1.1 | Python dependencies (updated with testing deps) |
 | config.py | 1.1 | Database and Flask configuration |
 | run.py | 1.1 | Application entry point |
 | app/__init__.py | 1.2 | Flask app factory with init-db CLI command |
 | app/models.py | 1.2 | SQLAlchemy models (Project, FollowUp, StatusUpdate) with indexes |
+| pyproject.toml | Testing | pytest/coverage config with 100% threshold |
+| tests/conftest.py | Testing | Shared fixtures (app, client, db_session, sample data) |
+| tests/test_config.py | Testing | Configuration tests (6 tests) |
+| tests/test_app_factory.py | Testing | App factory and CLI tests (10 tests) |
+| tests/test_models.py | Testing | Model tests (14 tests) |
+| tests/routes/test_dashboard.py | Testing | Dashboard route tests (2 tests) |
+| tests/routes/test_projects.py | Testing | Project CRUD tests (31 tests) |
+| tests/routes/test_followups.py | Testing | Follow-up route tests (11 tests) |
+| tests/routes/test_updates.py | Testing | Status update route tests (2 tests) |
+| tests/routes/test_export.py | Testing | CSV export tests (12 tests) |
 
 ---
 
@@ -100,7 +118,10 @@ This ensures future Claude Code sessions understand what has been done and can c
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| — | — | No decisions logged yet |
+| 2025-12-30 | 100% code coverage requirement | Ensures code quality and catches regressions as features are added in Phases 2-6 |
+| 2025-12-30 | pytest + pytest-cov + pytest-flask | Standard Flask testing stack with good coverage integration |
+| 2025-12-30 | In-memory SQLite for tests | Fast test execution, isolated from production database |
+| 2025-12-30 | Test stubs for incomplete routes | Test current behavior of stub routes, update tests when implemented |
 
 ---
 
