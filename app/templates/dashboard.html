@@ -10,13 +10,16 @@
     {% macro project_card(project) %}
     <li class="project-card {% if project.staleness_level != 'ok' %}staleness-{{ project.staleness_level }}{% endif %}">
         <div class="project-header">
-            <div class="project-title">
-                <strong>{{ project.client_name }}</strong>: {{ project.project_name }}
-                {% if project.staleness_level != 'ok' %}
-                <span class="staleness-badge staleness-{{ project.staleness_level }}">
-                    {{ project.days_since_update }}d stale
-                </span>
-                {% endif %}
+            <div class="project-info">
+                <div class="client-name">{{ project.client_name }}</div>
+                <div class="project-name-row">
+                    <span class="project-name">{{ project.project_name }}</span>
+                    {% if project.staleness_level != 'ok' %}
+                    <span class="staleness-badge staleness-{{ project.staleness_level }}">
+                        {{ project.days_since_update }}d stale
+                    </span>
+                    {% endif %}
+                </div>
             </div>
             <div class="project-deadline">
                 {% if project.effective_deadline %}
