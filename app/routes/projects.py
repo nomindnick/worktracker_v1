@@ -97,6 +97,7 @@ def new():
         client_name = request.form.get('client_name', '').strip()
         project_name = request.form.get('project_name', '').strip()
         matter_number = request.form.get('matter_number', '').strip() or None
+        client_number = request.form.get('client_number', '').strip() or None
         hard_deadline_str = request.form.get('hard_deadline', '').strip()
         internal_deadline_str = request.form.get('internal_deadline', '').strip()
         assigner = request.form.get('assigner', '').strip()
@@ -158,6 +159,7 @@ def new():
             client_name=client_name,
             project_name=project_name,
             matter_number=matter_number,
+            client_number=client_number,
             hard_deadline=hard_deadline,
             internal_deadline=internal_deadline,
             assigner=assigner,
@@ -199,6 +201,7 @@ def edit(id):
         client_name = request.form.get('client_name', '').strip()
         project_name = request.form.get('project_name', '').strip()
         matter_number = request.form.get('matter_number', '').strip() or None
+        client_number = request.form.get('client_number', '').strip() or None
         hard_deadline_str = request.form.get('hard_deadline', '').strip()
         internal_deadline_str = request.form.get('internal_deadline', '').strip()
         assigner = request.form.get('assigner', '').strip()
@@ -268,6 +271,7 @@ def edit(id):
         project.client_name = client_name
         project.project_name = project_name
         project.matter_number = matter_number
+        project.client_number = client_number
         project.hard_deadline = hard_deadline
         project.internal_deadline = internal_deadline
         project.assigner = assigner

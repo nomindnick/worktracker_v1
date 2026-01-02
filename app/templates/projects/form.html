@@ -19,10 +19,18 @@
                    value="{{ project.project_name if project else '' }}">
         </div>
 
-        <div class="form-group">
-            <label for="matter_number">Matter Number</label>
-            <input type="text" id="matter_number" name="matter_number" maxlength="50"
-                   value="{{ project.matter_number if project else '' }}">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="client_number">Client Number</label>
+                <input type="text" id="client_number" name="client_number" maxlength="50"
+                       value="{{ project.client_number if project else '' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="matter_number">Matter Number</label>
+                <input type="text" id="matter_number" name="matter_number" maxlength="50"
+                       value="{{ project.matter_number if project else '' }}">
+            </div>
         </div>
 
         <div class="form-row">

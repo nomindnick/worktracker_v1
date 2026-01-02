@@ -15,7 +15,7 @@ def export_csv():
 
     # Header row
     writer.writerow([
-        'Client', 'Project', 'Matter #', 'Hard Deadline',
+        'Client', 'Project', 'Client #', 'Matter #', 'Hard Deadline',
         'Internal Deadline', 'Attorneys', 'Priority',
         'Current Status', 'Next Follow-up'
     ])
@@ -30,6 +30,7 @@ def export_csv():
         writer.writerow([
             project.client_name,
             project.project_name,
+            project.client_number or '',
             project.matter_number or '',
             project.hard_deadline.isoformat() if project.hard_deadline else '',
             project.internal_deadline.isoformat(),

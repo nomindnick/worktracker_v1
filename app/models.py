@@ -9,6 +9,7 @@ class Project(db.Model):
     client_name = db.Column(db.String(200), nullable=False)
     project_name = db.Column(db.String(500), nullable=False)
     matter_number = db.Column(db.String(50))
+    client_number = db.Column(db.String(50))
     hard_deadline = db.Column(db.Date)
     internal_deadline = db.Column(db.Date, nullable=False, index=True)
     assigner = db.Column(db.String(200), nullable=False, default='Self')
