@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Milestones - Legal Worklist{% endblock %}
+
+{% block content %}
+<div class="milestones-list">
+    <div class="page-header">
+        <h1>Milestones</h1>
+        <a href="{{ url_for('milestones.new') }}" class="btn btn-primary">New Milestone</a>
+    </div>
+
+    {% if milestones %}
+    <div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Milestone</th>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for milestone in milestones %}
+            <tr>
+                <td><a href="{{ url_for('projects.detail', id=milestone.project_id) }}">{{ milestone.project.client_name }}: {{ milestone.project.project_name }}</a></td>
+                <td>{{ milestone.name }}</td>
+                <td>{{ milestone.date }}</td>
+                <td>{{ milestone.description or '-' }}</td>
+                <td>
+                    <form action="{{ url_for('milestones.complete', id=milestone.id) }}" method="post" style="display: inline;" data-confirm="Mark this milestone as complete?">
+                        <button type="submit" class="btn btn-small btn-success">Complete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="empty-state">No pending milestones.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@ from flask import Blueprint, Response
 from datetime import date
 import csv
 from io import StringIO
-from app.models import Project, StatusUpdate, FollowUp
+from app.models import Project, StatusUpdate, Task
 
 bp = Blueprint('export', __name__)
 
@@ -15,29 +15,29 @@ def export_csv():
 
     # Header row
     writer.writerow([
-        'Client', 'Project', 'Client #', 'Matter #', 'Hard Deadline',
-        'Internal Deadline', 'Attorneys', 'Priority',
-        'Current Status', 'Next Follow-up'
+        'Client', 'Project', 'Client #', 'Matter #',
+        'Attorneys', 'Priority',
+        'Current Status', 'Next Task', 'Next Milestone'
     ])
 
     # Data rows
     for project in Project.query.filter_by(status='active').all():
         latest_update = StatusUpdate.query.filter_by(project_id=project.id)\
             .order_by(StatusUpdate.created_at.desc()).first()
-        next_followup = FollowUp.query.filter_by(project_id=project.id, completed=False)\
-            .order_by(FollowUp.due_date.asc()).first()
+        next_task = Task.query.filter_by(project_id=project.id, completed=False)\
+            .order_by(Task.due_date.asc()).first()
+        next_milestone = project.next_milestone
 
         writer.writerow([
             project.client_name,
             project.project_name,
             project.client_number or '',
             project.matter_number or '',
-            project.hard_deadline.isoformat() if project.hard_deadline else '',
-            project.internal_deadline.isoformat(),
             project.assigned_attorneys,
             project.priority,
             latest_update.notes if latest_update else '',
-            next_followup.due_date.isoformat() if next_followup else ''
+            next_task.due_date.isoformat() if next_task else '',
+            f"{next_milestone.name} ({next_milestone.date.isoformat()})" if next_milestone else ''
         ])
 
     return Response(

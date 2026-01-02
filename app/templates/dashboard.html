@@ -6,7 +6,7 @@
 <div class="dashboard">
     <h1>Today</h1>
 
-    {# Macro for rendering a project card with inline follow-ups #}
+    {# Macro for rendering a project card with inline tasks #}
     {% macro project_card(project) %}
     <li class="project-card {% if project.staleness_level != 'ok' %}staleness-{{ project.staleness_level }}{% endif %}">
         <div class="project-header">
@@ -21,13 +21,8 @@
                     {% endif %}
                 </div>
             </div>
-            <div class="project-deadline">
-                {% if project.effective_deadline %}
-                <span class="deadline deadline-{{ project.deadline_type }}">
-                    {{ project.effective_deadline.strftime('%b %d') }}
-                    {% if project.deadline_type == 'hard' %}(hard){% endif %}
-                </span>
-                {% endif %}
+            <div class="project-priority">
+                <span class="priority priority-{{ project.priority }}">{{ project.priority }}</span>
             </div>
         </div>
 
@@ -44,23 +39,46 @@
         </div>
         {% endif %}
 
-        {# Inline follow-ups #}
-        {% set pending_followups = project.get_pending_followups() %}
-        {% if pending_followups %}
-        <div class="inline-followups">
-            <span class="followups-label">Follow-ups:</span>
-            <ul class="followup-inline-list">
-                {% for followup in pending_followups %}
-                <li class="followup-inline {% if followup.due_date < today %}followup-overdue{% elif followup.due_date == today %}followup-due-today{% endif %}">
-                    <span class="followup-target">{{ followup.target_name }}</span>
-                    <span class="followup-due">({{ followup.due_date.strftime('%b %d') }})</span>
-                    <form action="{{ url_for('followups.complete', id=followup.id) }}" method="post" class="inline-form" data-confirm="Mark this follow-up as complete?">
-                        <button type="submit" class="btn btn-small btn-success">Done</button>
-                    </form>
-                    <form action="{{ url_for('followups.snooze', id=followup.id) }}" method="post" class="inline-form">
-                        <input type="number" name="days" value="1" min="1" max="365" class="snooze-input">
-                        <button type="submit" class="btn btn-small">Snooze</button>
-                    </form>
+        {# Inline tasks #}
+        {% set pending_tasks = project.get_pending_tasks() %}
+        {% if pending_tasks %}
+        <div class="inline-tasks">
+            <span class="tasks-label">Tasks:</span>
+            <ul class="task-inline-list">
+                {% for task in pending_tasks %}
+                <li class="task-inline {% if task.due_date < today %}task-overdue{% elif task.due_date == today %}task-due-today{% endif %}">
+                    <div class="task-main">
+                        <span class="task-target">{{ task.target_name }}</span>
+                        <span class="task-type">({{ task.target_type | replace('_', ' ') | title }})</span>
+                        <span class="task-due">({{ task.due_date.strftime('%b %d') }})</span>
+                        <span class="task-priority priority-{{ task.priority }}">{{ task.priority[0] | upper }}</span>
+                        <form action="{{ url_for('tasks.complete', id=task.id) }}" method="post" class="inline-form" data-confirm="Mark this task as complete?">
+                            <button type="submit" class="btn btn-small btn-success">Done</button>
+                        </form>
+                        <form action="{{ url_for('tasks.snooze', id=task.id) }}" method="post" class="inline-form">
+                            <input type="number" name="days" value="1" min="1" max="365" class="snooze-input">
+                            <button type="submit" class="btn btn-small">Snooze</button>
+                        </form>
+                    </div>
+                    {% if task.description %}
+                    <div class="task-description">{{ task.description }}</div>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {# Upcoming milestones #}
+        {% set pending_milestones = project.get_pending_milestones() %}
+        {% if pending_milestones %}
+        <div class="inline-milestones">
+            <span class="milestones-label">Milestones:</span>
+            <ul class="milestone-inline-list">
+                {% for milestone in pending_milestones[:3] %}
+                <li class="milestone-inline {% if milestone.date < today %}milestone-overdue{% elif milestone.date == today %}milestone-due-today{% endif %}">
+                    <span class="milestone-name">{{ milestone.name }}</span>
+                    <span class="milestone-date">({{ milestone.date.strftime('%b %d') }})</span>
                 </li>
                 {% endfor %}
             </ul>
@@ -69,14 +87,15 @@
 
         <div class="project-actions">
             <a href="{{ url_for('updates.new') }}?project_id={{ project.id }}" class="btn btn-small btn-primary">Add Update</a>
+            <a href="{{ url_for('tasks.new') }}?project_id={{ project.id }}" class="btn btn-small">Add Task</a>
             <a href="{{ url_for('projects.detail', id=project.id) }}" class="btn btn-small">View</a>
         </div>
     </li>
     {% endmacro %}
 
-    {# Due Today Section #}
+    {# Due Today/Overdue Section #}
     <section class="dashboard-section urgency-critical">
-        <h2>Due Today</h2>
+        <h2>Tasks Due Today / Overdue</h2>
         {% if due_today %}
         <ul class="dashboard-list project-list">
             {% for project in due_today %}
@@ -84,13 +103,13 @@
             {% endfor %}
         </ul>
         {% else %}
-        <p class="placeholder">No projects due today.</p>
+        <p class="placeholder">No projects with tasks due today.</p>
         {% endif %}
     </section>
 
     {# Due Tomorrow Section #}
     <section class="dashboard-section urgency-warning">
-        <h2>Due Tomorrow</h2>
+        <h2>Tasks Due Tomorrow</h2>
         {% if due_tomorrow %}
         <ul class="dashboard-list project-list">
             {% for project in due_tomorrow %}
@@ -98,36 +117,48 @@
             {% endfor %}
         </ul>
         {% else %}
-        <p class="placeholder">No projects due tomorrow.</p>
+        <p class="placeholder">No projects with tasks due tomorrow.</p>
         {% endif %}
     </section>
 
-    {# Due Next 5 Days Section #}
+    {# Due This Week Section #}
     <section class="dashboard-section urgency-info">
-        <h2>Due in 2-5 Days</h2>
-        {% if due_next_5_days %}
+        <h2>Tasks Due This Week</h2>
+        {% if due_this_week %}
         <ul class="dashboard-list project-list">
-            {% for project in due_next_5_days %}
+            {% for project in due_this_week %}
             {{ project_card(project) }}
             {% endfor %}
         </ul>
         {% else %}
-        <p class="placeholder">No projects due in 2-5 days.</p>
+        <p class="placeholder">No projects with tasks due this week.</p>
         {% endif %}
     </section>
 
-    {# Due Next 2 Weeks Section #}
+    {# Due Later Section #}
     <section class="dashboard-section">
-        <h2>Due in 6-14 Days</h2>
-        {% if due_next_2_weeks %}
+        <h2>Tasks Due Later</h2>
+        {% if due_later %}
         <ul class="dashboard-list project-list">
-            {% for project in due_next_2_weeks %}
+            {% for project in due_later %}
             {{ project_card(project) }}
             {% endfor %}
         </ul>
         {% else %}
-        <p class="placeholder">No projects due in 6-14 days.</p>
+        <p class="placeholder">No projects with tasks due in the next 2 weeks.</p>
         {% endif %}
     </section>
+
+    {# No Tasks Section #}
+    {% if no_tasks %}
+    <section class="dashboard-section">
+        <h2>Projects Without Tasks</h2>
+        <ul class="dashboard-list project-list">
+            {% for project in no_tasks %}
+            {{ project_card(project) }}
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}

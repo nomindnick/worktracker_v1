@@ -39,43 +39,39 @@ class TestProjectList:
 
         assert b'Add Update' in response.data
 
-    def test_list_shows_followup_columns(self, client, sample_project, db_session):
-        """Project list shows Follow-ups and Next Follow-up columns."""
+    def test_list_shows_task_columns(self, client, sample_project, db_session):
+        """Project list shows Tasks and Next Task columns."""
         response = client.get('/projects/')
 
-        assert b'>Follow-ups<' in response.data
-        assert b'Next Follow-up' in response.data
+        assert b'>Tasks<' in response.data
+        assert b'Next Task' in response.data
 
-    def test_list_shows_followup_count(self, client, sample_project, db_session):
-        """Project list shows count of pending follow-ups."""
-        from app.models import FollowUp
+    def test_list_shows_task_count(self, client, sample_project, db_session):
+        """Project list shows count of pending tasks."""
+        from app.models import Task
 
-        # Create pending follow-ups
-        followup1 = FollowUp(
+        # Create pending tasks
+        task1 = Task(
             project_id=sample_project.id,
             target_type='associate',
             target_name='Person A',
-            due_date=date.today()
+            due_date=date.today(),
+            priority='medium'
         )
-        followup2 = FollowUp(
+        task2 = Task(
             project_id=sample_project.id,
             target_type='client',
             target_name='Person B',
-            due_date=date.today() + timedelta(days=1)
+            due_date=date.today() + timedelta(days=1),
+            priority='medium'
         )
-        db_session.add_all([followup1, followup2])
+        db_session.add_all([task1, task2])
         db_session.commit()
 
         response = client.get('/projects/')
 
         # Should show count of 2
         assert b'>2<' in response.data
-
-    def test_list_shows_hard_deadline_column(self, client, sample_project, db_session):
-        """Project list shows Hard Deadline column."""
-        response = client.get('/projects/')
-
-        assert b'Hard Deadline' in response.data
 
     def test_list_shows_attorneys_column(self, client, sample_project, db_session):
         """Project list shows Attorneys column."""
@@ -84,24 +80,25 @@ class TestProjectList:
         assert b'Attorneys' in response.data
         assert b'Associate Jones' in response.data
 
-    def test_list_shows_add_followup_button(self, client, sample_project, db_session):
-        """Project list shows Add Follow-up button for each project."""
+    def test_list_shows_add_task_button(self, client, sample_project, db_session):
+        """Project list shows Add Task button for each project."""
         response = client.get('/projects/')
 
-        assert b'Add Follow-up' in response.data
+        assert b'Add Task' in response.data
 
-    def test_list_shows_next_followup_date(self, client, sample_project, db_session):
-        """Project list shows next follow-up due date."""
-        from app.models import FollowUp
+    def test_list_shows_next_task_date(self, client, sample_project, db_session):
+        """Project list shows next task due date."""
+        from app.models import Task
 
         next_date = date.today() + timedelta(days=3)
-        followup = FollowUp(
+        task = Task(
             project_id=sample_project.id,
             target_type='associate',
             target_name='Person A',
-            due_date=next_date
+            due_date=next_date,
+            priority='medium'
         )
-        db_session.add(followup)
+        db_session.add(task)
         db_session.commit()
 
         response = client.get('/projects/')
@@ -124,7 +121,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': 'New Client',
             'project_name': 'New Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Partner',
             'assigned_attorneys': 'Associate',
             'priority': 'high'
@@ -134,41 +130,6 @@ class TestProjectNew:
         project = Project.query.filter_by(client_name='New Client').first()
         assert project is not None
 
-    def test_new_post_with_hard_deadline(self, client, db_session):
-        """POST with hard_deadline parses date correctly."""
-        from app.models import Project
-
-        hard_deadline = (date.today() + timedelta(days=30)).isoformat()
-
-        client.post('/projects/new', data={
-            'client_name': 'Deadline Client',
-            'project_name': 'Deadline Project',
-            'hard_deadline': hard_deadline,
-            'internal_deadline': date.today().isoformat(),
-            'assigner': 'Self',
-            'assigned_attorneys': 'Me',
-            'priority': 'medium'
-        })
-
-        project = Project.query.filter_by(client_name='Deadline Client').first()
-        assert project.hard_deadline == date.today() + timedelta(days=30)
-
-    def test_new_post_without_hard_deadline(self, client, db_session):
-        """POST without hard_deadline leaves it as None."""
-        from app.models import Project
-
-        client.post('/projects/new', data={
-            'client_name': 'No Deadline',
-            'project_name': 'No Hard Deadline',
-            'internal_deadline': date.today().isoformat(),
-            'assigner': 'Self',
-            'assigned_attorneys': 'Me',
-            'priority': 'low'
-        })
-
-        project = Project.query.filter_by(client_name='No Deadline').first()
-        assert project.hard_deadline is None
-
     def test_new_post_with_estimated_hours(self, client, db_session):
         """POST with estimated_hours parses float correctly."""
         from app.models import Project
@@ -176,7 +137,6 @@ class TestProjectNew:
         client.post('/projects/new', data={
             'client_name': 'Hours Client',
             'project_name': 'Hours Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium',
@@ -193,7 +153,6 @@ class TestProjectNew:
         client.post('/projects/new', data={
             'client_name': 'No Hours',
             'project_name': 'No Hours Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium'
@@ -210,7 +169,6 @@ class TestProjectNew:
             'client_name': 'Empty Matter',
             'project_name': 'Empty Matter Project',
             'matter_number': '',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium'
@@ -226,7 +184,6 @@ class TestProjectNew:
         client.post('/projects/new', data={
             'client_name': 'Update Client',
             'project_name': 'Update Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium',
@@ -243,7 +200,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': 'Redirect Client',
             'project_name': 'Redirect Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium'
@@ -257,7 +213,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': 'Flash Client',
             'project_name': 'Flash Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium'
@@ -270,7 +225,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': '',
             'project_name': 'Test Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium'
@@ -284,7 +238,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': 'Test Client',
             'project_name': '',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium'
@@ -293,55 +246,11 @@ class TestProjectNew:
         assert response.status_code == 200
         assert b'Project name is required' in response.data
 
-    def test_new_post_missing_internal_deadline(self, client, db_session):
-        """POST with missing internal_deadline shows validation error."""
-        response = client.post('/projects/new', data={
-            'client_name': 'Test Client',
-            'project_name': 'Test Project',
-            'internal_deadline': '',
-            'assigner': 'Self',
-            'assigned_attorneys': 'Me',
-            'priority': 'medium'
-        })
-
-        assert response.status_code == 200
-        assert b'Internal deadline is required' in response.data
-
-    def test_new_post_invalid_internal_deadline(self, client, db_session):
-        """POST with invalid internal_deadline format shows validation error."""
-        response = client.post('/projects/new', data={
-            'client_name': 'Test Client',
-            'project_name': 'Test Project',
-            'internal_deadline': 'not-a-date',
-            'assigner': 'Self',
-            'assigned_attorneys': 'Me',
-            'priority': 'medium'
-        })
-
-        assert response.status_code == 200
-        assert b'Internal deadline must be a valid date' in response.data
-
-    def test_new_post_invalid_hard_deadline(self, client, db_session):
-        """POST with invalid hard_deadline format shows validation error."""
-        response = client.post('/projects/new', data={
-            'client_name': 'Test Client',
-            'project_name': 'Test Project',
-            'hard_deadline': 'not-a-date',
-            'internal_deadline': date.today().isoformat(),
-            'assigner': 'Self',
-            'assigned_attorneys': 'Me',
-            'priority': 'medium'
-        })
-
-        assert response.status_code == 200
-        assert b'Hard deadline must be a valid date' in response.data
-
     def test_new_post_invalid_priority(self, client, db_session):
         """POST with invalid priority value shows validation error."""
         response = client.post('/projects/new', data={
             'client_name': 'Test Client',
             'project_name': 'Test Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'invalid'
@@ -355,7 +264,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': 'Test Client',
             'project_name': 'Test Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium',
@@ -370,7 +278,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': 'Test Client',
             'project_name': 'Test Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': 'medium',
@@ -385,7 +292,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': 'Test Client',
             'project_name': 'Test Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': '',
             'assigned_attorneys': 'Me',
             'priority': 'medium'
@@ -399,7 +305,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': 'Test Client',
             'project_name': 'Test Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': '',
             'priority': 'medium'
@@ -413,7 +318,6 @@ class TestProjectNew:
         response = client.post('/projects/new', data={
             'client_name': 'Test Client',
             'project_name': 'Test Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Self',
             'assigned_attorneys': 'Me',
             'priority': ''
@@ -459,18 +363,19 @@ class TestProjectDetail:
         response = client.get(f'/projects/{sample_project.id}')
         assert b'No status updates yet' in response.data
 
-    def test_detail_shows_pending_followups(self, client, sample_project, db_session):
-        """Project detail shows pending follow-ups with action buttons."""
-        from app.models import FollowUp
+    def test_detail_shows_pending_tasks(self, client, sample_project, db_session):
+        """Project detail shows pending tasks with action buttons."""
+        from app.models import Task
 
-        followup = FollowUp(
+        task = Task(
             project_id=sample_project.id,
             target_type='associate',
             target_name='John Doe',
             due_date=date.today() + timedelta(days=2),
-            notes='Important follow-up'
+            description='Important task',
+            priority='high'
         )
-        db_session.add(followup)
+        db_session.add(task)
         db_session.commit()
 
         response = client.get(f'/projects/{sample_project.id}')
@@ -478,24 +383,25 @@ class TestProjectDetail:
         assert b'Pending' in response.data
         assert b'John Doe' in response.data
         assert b'Associate' in response.data  # Formatted with title case
-        assert b'Important follow-up' in response.data
+        assert b'Important task' in response.data
         assert b'Complete' in response.data
         assert b'Snooze' in response.data
 
-    def test_detail_shows_completed_followups(self, client, sample_project, db_session):
-        """Project detail shows completed follow-ups separately."""
-        from app.models import FollowUp
+    def test_detail_shows_completed_tasks(self, client, sample_project, db_session):
+        """Project detail shows completed tasks separately."""
+        from app.models import Task
         from datetime import datetime
 
-        followup = FollowUp(
+        task = Task(
             project_id=sample_project.id,
             target_type='client',
             target_name='Jane Smith',
             due_date=date.today(),
+            priority='medium',
             completed=True,
             completed_at=datetime.utcnow()
         )
-        db_session.add(followup)
+        db_session.add(task)
         db_session.commit()
 
         response = client.get(f'/projects/{sample_project.id}')
@@ -504,18 +410,18 @@ class TestProjectDetail:
         assert b'Jane Smith' in response.data
         assert b'Client' in response.data  # Formatted with title case
 
-    def test_detail_shows_no_followups_message(self, client, sample_project, db_session):
-        """Project detail shows message when no follow-ups exist."""
+    def test_detail_shows_no_tasks_message(self, client, sample_project, db_session):
+        """Project detail shows message when no tasks exist."""
         response = client.get(f'/projects/{sample_project.id}')
 
-        assert b'No pending follow-ups' in response.data
-        assert b'No completed follow-ups' in response.data
+        assert b'No pending tasks' in response.data
+        assert b'No completed tasks' in response.data
 
-    def test_detail_shows_add_followup_button(self, client, sample_project, db_session):
-        """Project detail shows Add Follow-up button."""
+    def test_detail_shows_add_task_button(self, client, sample_project, db_session):
+        """Project detail shows Add Task button."""
         response = client.get(f'/projects/{sample_project.id}')
 
-        assert b'Add Follow-up' in response.data
+        assert b'Add Task' in response.data
 
     def test_detail_shows_actual_hours(self, client, sample_project, db_session):
         """Project detail shows actual hours when set."""
@@ -562,7 +468,6 @@ class TestProjectEdit:
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': 'Updated Client',
             'project_name': 'Updated Project',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'New Partner',
             'assigned_attorneys': 'New Associate',
             'priority': 'low'
@@ -574,29 +479,11 @@ class TestProjectEdit:
         assert sample_project.client_name == 'Updated Client'
         assert sample_project.project_name == 'Updated Project'
 
-    def test_edit_post_with_hard_deadline(self, client, sample_project, db_session):
-        """POST with hard_deadline parses date correctly."""
-        hard_deadline = (date.today() + timedelta(days=60)).isoformat()
-
-        client.post(f'/projects/{sample_project.id}/edit', data={
-            'client_name': sample_project.client_name,
-            'project_name': sample_project.project_name,
-            'hard_deadline': hard_deadline,
-            'internal_deadline': date.today().isoformat(),
-            'assigner': sample_project.assigner,
-            'assigned_attorneys': sample_project.assigned_attorneys,
-            'priority': sample_project.priority
-        })
-
-        db_session.refresh(sample_project)
-        assert sample_project.hard_deadline == date.today() + timedelta(days=60)
-
     def test_edit_post_with_invalid_estimated_hours(self, client, sample_project, db_session):
         """POST with invalid estimated_hours shows validation error."""
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
-            'internal_deadline': date.today().isoformat(),
             'assigner': sample_project.assigner,
             'assigned_attorneys': sample_project.assigned_attorneys,
             'priority': sample_project.priority,
@@ -611,7 +498,6 @@ class TestProjectEdit:
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
-            'internal_deadline': date.today().isoformat(),
             'assigner': sample_project.assigner,
             'assigned_attorneys': sample_project.assigned_attorneys,
             'priority': sample_project.priority,
@@ -626,7 +512,6 @@ class TestProjectEdit:
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
-            'internal_deadline': date.today().isoformat(),
             'assigner': sample_project.assigner,
             'assigned_attorneys': sample_project.assigned_attorneys,
             'priority': sample_project.priority,
@@ -641,7 +526,6 @@ class TestProjectEdit:
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
-            'internal_deadline': date.today().isoformat(),
             'assigner': sample_project.assigner,
             'assigned_attorneys': sample_project.assigned_attorneys,
             'priority': sample_project.priority,
@@ -656,7 +540,6 @@ class TestProjectEdit:
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
-            'internal_deadline': date.today().isoformat(),
             'assigner': sample_project.assigner,
             'assigned_attorneys': sample_project.assigned_attorneys,
             'priority': sample_project.priority,
@@ -674,7 +557,6 @@ class TestProjectEdit:
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': '',
             'project_name': '',
-            'internal_deadline': '',
             'assigner': '',
             'assigned_attorneys': '',
             'priority': ''
@@ -683,28 +565,12 @@ class TestProjectEdit:
         assert response.status_code == 200
         assert b'Client name is required' in response.data
         assert b'Project name is required' in response.data
-        assert b'Internal deadline is required' in response.data
-
-    def test_edit_post_invalid_date(self, client, sample_project, db_session):
-        """POST with invalid date format shows validation error."""
-        response = client.post(f'/projects/{sample_project.id}/edit', data={
-            'client_name': sample_project.client_name,
-            'project_name': sample_project.project_name,
-            'internal_deadline': 'bad-date',
-            'assigner': sample_project.assigner,
-            'assigned_attorneys': sample_project.assigned_attorneys,
-            'priority': sample_project.priority
-        })
-
-        assert response.status_code == 200
-        assert b'Internal deadline must be a valid date' in response.data
 
     def test_edit_post_invalid_priority(self, client, sample_project, db_session):
         """POST with invalid priority value shows validation error."""
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
-            'internal_deadline': date.today().isoformat(),
             'assigner': sample_project.assigner,
             'assigned_attorneys': sample_project.assigned_attorneys,
             'priority': 'invalid'
@@ -712,21 +578,6 @@ class TestProjectEdit:
 
         assert response.status_code == 200
         assert b'Priority must be high, medium, or low' in response.data
-
-    def test_edit_post_invalid_hard_deadline(self, client, sample_project, db_session):
-        """POST with invalid hard_deadline format shows validation error."""
-        response = client.post(f'/projects/{sample_project.id}/edit', data={
-            'client_name': sample_project.client_name,
-            'project_name': sample_project.project_name,
-            'hard_deadline': 'not-a-date',
-            'internal_deadline': date.today().isoformat(),
-            'assigner': sample_project.assigner,
-            'assigned_attorneys': sample_project.assigned_attorneys,
-            'priority': sample_project.priority
-        })
-
-        assert response.status_code == 200
-        assert b'Hard deadline must be a valid date' in response.data
 
     def test_edit_form_shows_actual_hours_field(self, client, sample_project, db_session):
         """Edit form shows actual_hours field."""
@@ -742,7 +593,6 @@ class TestProjectEdit:
         client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': 'Timestamp Test',
             'project_name': sample_project.project_name,
-            'internal_deadline': date.today().isoformat(),
             'assigner': sample_project.assigner,
             'assigned_attorneys': sample_project.assigned_attorneys,
             'priority': sample_project.priority
@@ -756,7 +606,6 @@ class TestProjectEdit:
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
-            'internal_deadline': date.today().isoformat(),
             'assigner': sample_project.assigner,
             'assigned_attorneys': sample_project.assigned_attorneys,
             'priority': sample_project.priority
@@ -770,7 +619,6 @@ class TestProjectEdit:
         response = client.post(f'/projects/{sample_project.id}/edit', data={
             'client_name': sample_project.client_name,
             'project_name': sample_project.project_name,
-            'internal_deadline': date.today().isoformat(),
             'assigner': sample_project.assigner,
             'assigned_attorneys': sample_project.assigned_attorneys,
             'priority': sample_project.priority
@@ -783,7 +631,6 @@ class TestProjectEdit:
         response = client.post('/projects/99999/edit', data={
             'client_name': 'Test',
             'project_name': 'Test',
-            'internal_deadline': date.today().isoformat(),
             'assigner': 'Test',
             'assigned_attorneys': 'Test',
             'priority': 'medium'
@@ -984,10 +831,7 @@ class TestArchivedList:
 
     def test_archived_list_shows_all_spec_columns(self, client, sample_project, db_session):
         """Archived list shows all columns per spec: same as active list plus hours."""
-        from datetime import date
         sample_project.status = 'archived'
-        sample_project.hard_deadline = date(2025, 2, 15)
-        sample_project.internal_deadline = date(2025, 2, 1)
         sample_project.assigned_attorneys = 'Alice, Bob'
         sample_project.priority = 'high'
         db_session.commit()
@@ -995,14 +839,10 @@ class TestArchivedList:
         response = client.get('/projects/archived')
 
         # Verify column headers exist
-        assert b'Hard Deadline' in response.data
-        assert b'Internal Deadline' in response.data
         assert b'Attorneys' in response.data
         assert b'Priority' in response.data
 
         # Verify data is displayed
-        assert b'2025-02-15' in response.data
-        assert b'2025-02-01' in response.data
         assert b'Alice, Bob' in response.data
         assert b'high' in response.data
 
@@ -1031,11 +871,9 @@ class TestProjectListFiltering:
 
         # Create projects with different priorities
         high = Project(client_name='High Client', project_name='High Project',
-                      internal_deadline=date.today(), assigner='Self',
-                      assigned_attorneys='Me', priority='high')
+                      assigner='Self', assigned_attorneys='Me', priority='high')
         low = Project(client_name='Low Client', project_name='Low Project',
-                     internal_deadline=date.today(), assigner='Self',
-                     assigned_attorneys='Me', priority='low')
+                     assigner='Self', assigned_attorneys='Me', priority='low')
         db_session.add_all([high, low])
         db_session.commit()
 
@@ -1049,11 +887,9 @@ class TestProjectListFiltering:
         from app.models import Project
 
         medium = Project(client_name='Medium Client', project_name='Medium Project',
-                        internal_deadline=date.today(), assigner='Self',
-                        assigned_attorneys='Me', priority='medium')
+                        assigner='Self', assigned_attorneys='Me', priority='medium')
         high = Project(client_name='High Client', project_name='High Project',
-                      internal_deadline=date.today(), assigner='Self',
-                      assigned_attorneys='Me', priority='high')
+                      assigner='Self', assigned_attorneys='Me', priority='high')
         db_session.add_all([medium, high])
         db_session.commit()
 
@@ -1067,11 +903,9 @@ class TestProjectListFiltering:
         from app.models import Project
 
         low = Project(client_name='Low Client', project_name='Low Project',
-                     internal_deadline=date.today(), assigner='Self',
-                     assigned_attorneys='Me', priority='low')
+                     assigner='Self', assigned_attorneys='Me', priority='low')
         high = Project(client_name='High Client', project_name='High Project',
-                      internal_deadline=date.today(), assigner='Self',
-                      assigned_attorneys='Me', priority='high')
+                      assigner='Self', assigned_attorneys='Me', priority='high')
         db_session.add_all([low, high])
         db_session.commit()
 
@@ -1085,11 +919,9 @@ class TestProjectListFiltering:
         from app.models import Project
 
         jones = Project(client_name='Jones Client', project_name='Jones Project',
-                       internal_deadline=date.today(), assigner='Self',
-                       assigned_attorneys='Smith, Jones', priority='medium')
+                       assigner='Self', assigned_attorneys='Smith, Jones', priority='medium')
         smith = Project(client_name='Smith Client', project_name='Smith Project',
-                       internal_deadline=date.today(), assigner='Self',
-                       assigned_attorneys='Smith Only', priority='medium')
+                       assigner='Self', assigned_attorneys='Smith Only', priority='medium')
         db_session.add_all([jones, smith])
         db_session.commit()
 
@@ -1103,11 +935,9 @@ class TestProjectListFiltering:
         from app.models import Project
 
         partner = Project(client_name='Partner Client', project_name='Partner Project',
-                         internal_deadline=date.today(), assigner='Partner A',
-                         assigned_attorneys='Me', priority='medium')
+                         assigner='Partner A', assigned_attorneys='Me', priority='medium')
         self_assigned = Project(client_name='Self Client', project_name='Self Project',
-                               internal_deadline=date.today(), assigner='Self',
-                               assigned_attorneys='Me', priority='medium')
+                               assigner='Self', assigned_attorneys='Me', priority='medium')
         db_session.add_all([partner, self_assigned])
         db_session.commit()
 
@@ -1121,14 +951,11 @@ class TestProjectListFiltering:
         from app.models import Project
 
         match = Project(client_name='Match Client', project_name='Match Project',
-                       internal_deadline=date.today(), assigner='Partner',
-                       assigned_attorneys='Jones', priority='high')
+                       assigner='Partner', assigned_attorneys='Jones', priority='high')
         wrong_priority = Project(client_name='Wrong Priority', project_name='WP Project',
-                                internal_deadline=date.today(), assigner='Partner',
-                                assigned_attorneys='Jones', priority='low')
+                                assigner='Partner', assigned_attorneys='Jones', priority='low')
         wrong_attorney = Project(client_name='Wrong Attorney', project_name='WA Project',
-                                internal_deadline=date.today(), assigner='Partner',
-                                assigned_attorneys='Smith', priority='high')
+                                assigner='Partner', assigned_attorneys='Smith', priority='high')
         db_session.add_all([match, wrong_priority, wrong_attorney])
         db_session.commit()
 
@@ -1143,11 +970,9 @@ class TestProjectListFiltering:
         from app.models import Project
 
         p1 = Project(client_name='Client One', project_name='Project One',
-                    internal_deadline=date.today(), assigner='Self',
-                    assigned_attorneys='Me', priority='high')
+                    assigner='Self', assigned_attorneys='Me', priority='high')
         p2 = Project(client_name='Client Two', project_name='Project Two',
-                    internal_deadline=date.today(), assigner='Self',
-                    assigned_attorneys='Me', priority='low')
+                    assigner='Self', assigned_attorneys='Me', priority='low')
         db_session.add_all([p1, p2])
         db_session.commit()
 
@@ -1156,172 +981,20 @@ class TestProjectListFiltering:
         assert b'Client One' in response.data
         assert b'Client Two' in response.data
 
-    def test_list_filter_by_deadline_from(self, client, db_session):
-        """Filter by deadline_from shows projects with deadline >= from date."""
-        from app.models import Project
-
-        future = Project(client_name='Future Client', project_name='Future Project',
-                        internal_deadline=date.today() + timedelta(days=30),
-                        assigner='Self', assigned_attorneys='Me', priority='medium')
-        past = Project(client_name='Past Client', project_name='Past Project',
-                      internal_deadline=date.today() - timedelta(days=30),
-                      assigner='Self', assigned_attorneys='Me', priority='medium')
-        db_session.add_all([future, past])
-        db_session.commit()
-
-        from_date = (date.today() + timedelta(days=1)).isoformat()
-        response = client.get(f'/projects/?deadline_from={from_date}')
-
-        assert b'Future Client' in response.data
-        assert b'Past Client' not in response.data
-
-    def test_list_filter_by_deadline_to(self, client, db_session):
-        """Filter by deadline_to shows projects with deadline <= to date."""
-        from app.models import Project
-
-        future = Project(client_name='Future Client', project_name='Future Project',
-                        internal_deadline=date.today() + timedelta(days=30),
-                        assigner='Self', assigned_attorneys='Me', priority='medium')
-        soon = Project(client_name='Soon Client', project_name='Soon Project',
-                      internal_deadline=date.today() + timedelta(days=5),
-                      assigner='Self', assigned_attorneys='Me', priority='medium')
-        db_session.add_all([future, soon])
-        db_session.commit()
-
-        to_date = (date.today() + timedelta(days=10)).isoformat()
-        response = client.get(f'/projects/?deadline_to={to_date}')
-
-        assert b'Soon Client' in response.data
-        assert b'Future Client' not in response.data
-
-    def test_list_filter_by_deadline_range(self, client, db_session):
-        """Filter by both deadline_from and deadline_to shows projects in range."""
-        from app.models import Project
-
-        before = Project(client_name='Before Client', project_name='Before Project',
-                        internal_deadline=date.today() + timedelta(days=5),
-                        assigner='Self', assigned_attorneys='Me', priority='medium')
-        within = Project(client_name='Within Client', project_name='Within Project',
-                        internal_deadline=date.today() + timedelta(days=15),
-                        assigner='Self', assigned_attorneys='Me', priority='medium')
-        after = Project(client_name='After Client', project_name='After Project',
-                       internal_deadline=date.today() + timedelta(days=30),
-                       assigner='Self', assigned_attorneys='Me', priority='medium')
-        db_session.add_all([before, within, after])
-        db_session.commit()
-
-        from_date = (date.today() + timedelta(days=10)).isoformat()
-        to_date = (date.today() + timedelta(days=20)).isoformat()
-        response = client.get(f'/projects/?deadline_from={from_date}&deadline_to={to_date}')
-
-        assert b'Within Client' in response.data
-        assert b'Before Client' not in response.data
-        assert b'After Client' not in response.data
-
-    def test_list_filter_deadline_from_invalid_date_ignored(self, client, db_session):
-        """Invalid deadline_from filter date is ignored."""
-        from app.models import Project
-
-        project = Project(client_name='Test Client', project_name='Test Project',
-                         internal_deadline=date.today() + timedelta(days=10),
-                         assigner='Self', assigned_attorneys='Me', priority='medium')
-        db_session.add(project)
-        db_session.commit()
-
-        # Invalid date format should be ignored, project should still appear
-        response = client.get('/projects/?deadline_from=invalid-date')
-
-        assert b'Test Client' in response.data
-
-    def test_list_filter_deadline_to_invalid_date_ignored(self, client, db_session):
-        """Invalid deadline_to filter date is ignored."""
-        from app.models import Project
-
-        project = Project(client_name='Test Client', project_name='Test Project',
-                         internal_deadline=date.today() + timedelta(days=10),
-                         assigner='Self', assigned_attorneys='Me', priority='medium')
-        db_session.add(project)
-        db_session.commit()
-
-        # Invalid date format should be ignored, project should still appear
-        response = client.get('/projects/?deadline_to=invalid-date')
-
-        assert b'Test Client' in response.data
-
-    def test_list_deadline_filter_inputs_appear(self, client, db_session):
-        """Deadline filter inputs appear in template."""
-        from app.models import Project
-
-        project = Project(client_name='Test', project_name='Test',
-                         internal_deadline=date.today(), assigner='Self',
-                         assigned_attorneys='Me', priority='medium')
-        db_session.add(project)
-        db_session.commit()
-
-        response = client.get('/projects/')
-
-        assert b'deadline_from' in response.data
-        assert b'deadline_to' in response.data
-        assert b'Deadline From' in response.data
-        assert b'Deadline To' in response.data
-
 
 class TestProjectListSorting:
     """Test sorting functionality on GET /projects/ route."""
-
-    def test_list_sort_by_deadline_asc(self, client, db_session):
-        """Sort by internal_deadline ascending (default)."""
-        from app.models import Project
-
-        later = Project(client_name='Later Client', project_name='Later Project',
-                       internal_deadline=date.today() + timedelta(days=30),
-                       assigner='Self', assigned_attorneys='Me', priority='medium')
-        earlier = Project(client_name='Earlier Client', project_name='Earlier Project',
-                         internal_deadline=date.today() + timedelta(days=5),
-                         assigner='Self', assigned_attorneys='Me', priority='medium')
-        db_session.add_all([later, earlier])
-        db_session.commit()
-
-        response = client.get('/projects/?sort_by=internal_deadline&sort_order=asc')
-
-        # Earlier should appear before Later in the response
-        earlier_pos = response.data.find(b'Earlier Client')
-        later_pos = response.data.find(b'Later Client')
-        assert earlier_pos < later_pos
-
-    def test_list_sort_by_deadline_desc(self, client, db_session):
-        """Sort by internal_deadline descending."""
-        from app.models import Project
-
-        later = Project(client_name='Later Client', project_name='Later Project',
-                       internal_deadline=date.today() + timedelta(days=30),
-                       assigner='Self', assigned_attorneys='Me', priority='medium')
-        earlier = Project(client_name='Earlier Client', project_name='Earlier Project',
-                         internal_deadline=date.today() + timedelta(days=5),
-                         assigner='Self', assigned_attorneys='Me', priority='medium')
-        db_session.add_all([later, earlier])
-        db_session.commit()
-
-        response = client.get('/projects/?sort_by=internal_deadline&sort_order=desc')
-
-        # Later should appear before Earlier in the response
-        earlier_pos = response.data.find(b'Earlier Client')
-        later_pos = response.data.find(b'Later Client')
-        assert later_pos < earlier_pos
 
     def test_list_sort_by_priority_asc(self, client, db_session):
         """Sort by priority ascending (high > medium > low)."""
         from app.models import Project
 
         high = Project(client_name='High Client', project_name='High Project',
-                      internal_deadline=date.today(), assigner='Self',
-                      assigned_attorneys='Me', priority='high')
+                      assigner='Self', assigned_attorneys='Me', priority='high')
         low = Project(client_name='Low Client', project_name='Low Project',
-                     internal_deadline=date.today(), assigner='Self',
-                     assigned_attorneys='Me', priority='low')
+                     assigner='Self', assigned_attorneys='Me', priority='low')
         medium = Project(client_name='Medium Client', project_name='Medium Project',
-                        internal_deadline=date.today(), assigner='Self',
-                        assigned_attorneys='Me', priority='medium')
+                        assigner='Self', assigned_attorneys='Me', priority='medium')
         db_session.add_all([low, high, medium])
         db_session.commit()
 
@@ -1338,11 +1011,9 @@ class TestProjectListSorting:
         from app.models import Project
 
         high = Project(client_name='High Client', project_name='High Project',
-                      internal_deadline=date.today(), assigner='Self',
-                      assigned_attorneys='Me', priority='high')
+                      assigner='Self', assigned_attorneys='Me', priority='high')
         low = Project(client_name='Low Client', project_name='Low Project',
-                     internal_deadline=date.today(), assigner='Self',
-                     assigned_attorneys='Me', priority='low')
+                     assigner='Self', assigned_attorneys='Me', priority='low')
         db_session.add_all([high, low])
         db_session.commit()
 
@@ -1360,11 +1031,9 @@ class TestProjectListSorting:
 
         # Create projects with different staleness
         stale = Project(client_name='Stale Client', project_name='Stale Project',
-                       internal_deadline=date.today(), assigner='Self',
-                       assigned_attorneys='Me', priority='medium')
+                       assigner='Self', assigned_attorneys='Me', priority='medium')
         fresh = Project(client_name='Fresh Client', project_name='Fresh Project',
-                       internal_deadline=date.today(), assigner='Self',
-                       assigned_attorneys='Me', priority='medium')
+                       assigner='Self', assigned_attorneys='Me', priority='medium')
         db_session.add_all([stale, fresh])
         db_session.flush()
 
@@ -1387,14 +1056,12 @@ class TestProjectListSorting:
 
         # Create a stale project with old created_at
         stale = Project(client_name='Stale Client', project_name='Stale Project',
-                       internal_deadline=date.today(), assigner='Self',
-                       assigned_attorneys='Me', priority='medium')
+                       assigner='Self', assigned_attorneys='Me', priority='medium')
         stale.created_at = datetime.utcnow() - timedelta(days=10)  # 10 days old
 
         # Create a fresh project with recent created_at
         fresh = Project(client_name='Fresh Client', project_name='Fresh Project',
-                       internal_deadline=date.today(), assigner='Self',
-                       assigned_attorneys='Me', priority='medium')
+                       assigner='Self', assigned_attorneys='Me', priority='medium')
         # fresh.created_at will be now (0 days old)
 
         db_session.add_all([stale, fresh])
@@ -1407,63 +1074,34 @@ class TestProjectListSorting:
         fresh_pos = response.data.find(b'Fresh Client')
         assert fresh_pos < stale_pos
 
-    def test_list_invalid_sort_column(self, client, db_session):
-        """Invalid sort column falls back to internal_deadline."""
-        from app.models import Project
-
-        p1 = Project(client_name='Client A', project_name='Project A',
-                    internal_deadline=date.today() + timedelta(days=10),
-                    assigner='Self', assigned_attorneys='Me', priority='medium')
-        p2 = Project(client_name='Client B', project_name='Project B',
-                    internal_deadline=date.today() + timedelta(days=5),
-                    assigner='Self', assigned_attorneys='Me', priority='medium')
-        db_session.add_all([p1, p2])
-        db_session.commit()
-
-        response = client.get('/projects/?sort_by=invalid_column&sort_order=asc')
-
-        # Should fall back to deadline sort - B (earlier) before A
-        a_pos = response.data.find(b'Client A')
-        b_pos = response.data.find(b'Client B')
-        assert b_pos < a_pos
-
     def test_list_filter_and_sort_combined(self, client, db_session):
         """Filters and sorting work together."""
         from app.models import Project
 
         h1 = Project(client_name='High Early', project_name='HE Project',
-                    internal_deadline=date.today() + timedelta(days=5),
                     assigner='Self', assigned_attorneys='Me', priority='high')
         h2 = Project(client_name='High Late', project_name='HL Project',
-                    internal_deadline=date.today() + timedelta(days=30),
                     assigner='Self', assigned_attorneys='Me', priority='high')
         low = Project(client_name='Low Client', project_name='Low Project',
-                     internal_deadline=date.today(), assigner='Self',
-                     assigned_attorneys='Me', priority='low')
+                     assigner='Self', assigned_attorneys='Me', priority='low')
         db_session.add_all([h2, h1, low])
         db_session.commit()
 
-        response = client.get('/projects/?priority=high&sort_by=internal_deadline&sort_order=asc')
+        response = client.get('/projects/?priority=high')
 
-        # Only high priority, sorted by deadline (Early before Late)
+        # Only high priority should appear
         assert b'High Early' in response.data
         assert b'High Late' in response.data
         assert b'Low Client' not in response.data
-
-        early_pos = response.data.find(b'High Early')
-        late_pos = response.data.find(b'High Late')
-        assert early_pos < late_pos
 
     def test_list_sort_by_client_name_asc(self, client, db_session):
         """Sort by client_name ascending (A-Z)."""
         from app.models import Project
 
         zebra = Project(client_name='Zebra Corp', project_name='Zebra Project',
-                       internal_deadline=date.today(), assigner='Self',
-                       assigned_attorneys='Me', priority='medium')
+                       assigner='Self', assigned_attorneys='Me', priority='medium')
         acme = Project(client_name='Acme Inc', project_name='Acme Project',
-                      internal_deadline=date.today(), assigner='Self',
-                      assigned_attorneys='Me', priority='medium')
+                      assigner='Self', assigned_attorneys='Me', priority='medium')
         db_session.add_all([zebra, acme])
         db_session.commit()
 
@@ -1479,11 +1117,9 @@ class TestProjectListSorting:
         from app.models import Project
 
         zebra = Project(client_name='Zebra Corp', project_name='Zebra Project',
-                       internal_deadline=date.today(), assigner='Self',
-                       assigned_attorneys='Me', priority='medium')
+                       assigner='Self', assigned_attorneys='Me', priority='medium')
         acme = Project(client_name='Acme Inc', project_name='Acme Project',
-                      internal_deadline=date.today(), assigner='Self',
-                      assigned_attorneys='Me', priority='medium')
+                      assigner='Self', assigned_attorneys='Me', priority='medium')
         db_session.add_all([zebra, acme])
         db_session.commit()
 
@@ -1499,8 +1135,7 @@ class TestProjectListSorting:
         from app.models import Project
 
         project = Project(client_name='Test Client', project_name='Test',
-                         internal_deadline=date.today(), assigner='Self',
-                         assigned_attorneys='Me', priority='medium')
+                         assigner='Self', assigned_attorneys='Me', priority='medium')
         db_session.add(project)
         db_session.commit()
 
@@ -1518,11 +1153,9 @@ class TestProjectListTemplateContext:
         from app.models import Project
 
         p1 = Project(client_name='Client A', project_name='Project A',
-                    internal_deadline=date.today(), assigner='Partner Bob',
-                    assigned_attorneys='Associate Alice', priority='medium')
+                    assigner='Partner Bob', assigned_attorneys='Associate Alice', priority='medium')
         p2 = Project(client_name='Client B', project_name='Project B',
-                    internal_deadline=date.today(), assigner='Partner Carol',
-                    assigned_attorneys='Associate Dave', priority='medium')
+                    assigner='Partner Carol', assigned_attorneys='Associate Dave', priority='medium')
         db_session.add_all([p1, p2])
         db_session.commit()
 
@@ -1550,15 +1183,14 @@ class TestProjectListTemplateContext:
         response = client.get('/projects/')
 
         assert b'sort-link' in response.data
-        assert b'sort_by=internal_deadline' in response.data
         assert b'sort_by=priority' in response.data
         assert b'sort_by=staleness' in response.data
 
     def test_list_shows_sort_indicator_for_current_sort(self, client, sample_project, db_session):
         """Template shows sort indicator arrow for current sort column."""
-        response = client.get('/projects/?sort_by=internal_deadline&sort_order=asc')
+        response = client.get('/projects/?sort_by=priority&sort_order=asc')
 
-        # Should have an up arrow for asc sort on deadline
+        # Should have an up arrow for asc sort on priority
         assert b'sort-indicator' in response.data
 
     def test_list_preserves_filter_in_sort_links(self, client, sample_project, db_session):
@@ -1568,9 +1200,33 @@ class TestProjectListTemplateContext:
         # Sort links should include priority=high
         assert b'priority=high' in response.data
 
+    def test_list_invalid_sort_column_defaults_to_client_name(self, client, sample_project, db_session):
+        """Invalid sort_by parameter defaults to client_name sort."""
+        response = client.get('/projects/?sort_by=invalid_column')
+
+        # Should return 200 OK and show the project
+        assert response.status_code == 200
+        assert b'Acme Corp' in response.data
+
+
+class TestProjectMilestonesNewRedirect:
+    """Test GET /projects/<id>/milestones/new redirect route."""
+
+    def test_milestones_new_redirects_to_milestone_form(self, client, sample_project, db_session):
+        """Route redirects to milestone form with project pre-selected."""
+        response = client.get(f'/projects/{sample_project.id}/milestones/new',
+                              follow_redirects=False)
+        assert response.status_code == 302
+        assert f'/milestones/new?project_id={sample_project.id}' in response.location
+
+    def test_milestones_new_404_for_missing_project(self, client, db_session):
+        """Route returns 404 for non-existent project."""
+        response = client.get('/projects/99999/milestones/new')
+        assert response.status_code == 404
+
 
 class TestProjectListUIResponsiveness:
-    """Test project list UI elements for Sprint 6.3."""
+    """Test project list UI elements."""
 
     def test_list_has_table_wrapper(self, client, sample_project, db_session):
         """Project list table is wrapped in table-wrapper div for mobile scrolling."""
@@ -1580,10 +1236,10 @@ class TestProjectListUIResponsiveness:
 
 
 class TestProjectDetailUIConfirmation:
-    """Test project detail UI elements for Sprint 6.3."""
+    """Test project detail UI elements."""
 
-    def test_detail_complete_button_has_data_confirm(self, client, sample_project, sample_followup, db_session):
+    def test_detail_complete_button_has_data_confirm(self, client, sample_project, sample_task, db_session):
         """Complete button on project detail has data-confirm attribute."""
         response = client.get(f'/projects/{sample_project.id}')
         data = response.data.decode('utf-8')
-        assert 'data-confirm="Mark this follow-up as complete?"' in data
+        assert 'data-confirm="Mark this task as complete?"' in data

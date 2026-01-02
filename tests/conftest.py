@@ -60,8 +60,6 @@ def sample_project(db_session):
         client_name='Acme Corp',
         project_name='Patent Application',
         matter_number='2024-001',
-        hard_deadline=date.today() + timedelta(days=30),
-        internal_deadline=date.today() + timedelta(days=14),
         assigner='Partner Smith',
         assigned_attorneys='Associate Jones',
         priority='high',
@@ -91,20 +89,55 @@ def sample_project_with_updates(sample_project, db_session):
 
 
 @pytest.fixture
-def sample_followup(sample_project, db_session):
-    """Create a sample follow-up for testing."""
-    from app.models import FollowUp
+def sample_task(sample_project, db_session):
+    """Create a sample task for testing."""
+    from app.models import Task
 
-    followup = FollowUp(
+    task = Task(
+        project_id=sample_project.id,
+        target_type='self',
+        target_name='John Doe',
+        due_date=date.today() + timedelta(days=3),
+        description='Follow up on document review',
+        priority='medium'
+    )
+    db_session.add(task)
+    db_session.commit()
+    return task
+
+
+@pytest.fixture
+def sample_followup(sample_project, db_session):
+    """Alias for sample_task for backward compatibility."""
+    from app.models import Task
+
+    task = Task(
         project_id=sample_project.id,
         target_type='client',
         target_name='John Doe',
         due_date=date.today() + timedelta(days=3),
-        notes='Follow up on document review'
+        description='Follow up on document review',
+        priority='medium'
     )
-    db_session.add(followup)
+    db_session.add(task)
     db_session.commit()
-    return followup
+    return task
+
+
+@pytest.fixture
+def sample_milestone(sample_project, db_session):
+    """Create a sample milestone for testing."""
+    from app.models import Milestone
+
+    milestone = Milestone(
+        project_id=sample_project.id,
+        name='Initial Filing',
+        description='Complete initial patent filing',
+        date=date.today() + timedelta(days=14)
+    )
+    db_session.add(milestone)
+    db_session.commit()
+    return milestone
 
 
 @pytest.fixture

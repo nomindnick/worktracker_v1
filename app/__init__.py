@@ -13,13 +13,15 @@ def create_app():
     # Register blueprints
     from app.routes.dashboard import bp as dashboard_bp
     from app.routes.projects import bp as projects_bp
-    from app.routes.followups import bp as followups_bp
+    from app.routes.tasks import bp as tasks_bp
+    from app.routes.milestones import bp as milestones_bp
     from app.routes.updates import bp as updates_bp
     from app.routes.export import bp as export_bp
 
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(projects_bp, url_prefix='/projects')
-    app.register_blueprint(followups_bp, url_prefix='/followups')
+    app.register_blueprint(tasks_bp, url_prefix='/tasks')
+    app.register_blueprint(milestones_bp, url_prefix='/milestones')
     app.register_blueprint(updates_bp, url_prefix='/updates')
     app.register_blueprint(export_bp, url_prefix='/export')
 

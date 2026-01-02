@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks - Legal Worklist{% endblock %}
+
+{% block content %}
+<div class="tasks-list">
+    <div class="page-header">
+        <h1>Tasks</h1>
+        <a href="{{ url_for('tasks.new') }}" class="btn btn-primary">New Task</a>
+    </div>
+
+    {% if tasks %}
+    <div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Target</th>
+                <th>Due Date</th>
+                <th>Priority</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td><a href="{{ url_for('projects.detail', id=task.project_id) }}">{{ task.project.client_name }}: {{ task.project.project_name }}</a></td>
+                <td>{{ task.target_name }} ({{ task.target_type | replace('_', ' ') | title }})</td>
+                <td>{{ task.due_date }}</td>
+                <td><span class="priority priority-{{ task.priority }}">{{ task.priority }}</span></td>
+                <td>{{ task.description or '-' }}</td>
+                <td>
+                    <form action="{{ url_for('tasks.complete', id=task.id) }}" method="post" style="display: inline;" data-confirm="Mark this task as complete?">
+                        <button type="submit" class="btn btn-small btn-success">Complete</button>
+                    </form>
+                    <form action="{{ url_for('tasks.snooze', id=task.id) }}" method="post" style="display: inline;">
+                        <input type="number" name="days" value="1" min="1" max="365" style="width: 50px;">
+                        <button type="submit" class="btn btn-small">Snooze</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="empty-state">No pending tasks.</p>
+    {% endif %}
+</div>
+{% endblock %}

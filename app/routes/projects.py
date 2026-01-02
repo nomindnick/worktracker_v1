@@ -13,9 +13,7 @@ def list():
     priority = request.args.get('priority', '')
     attorney = request.args.get('attorney', '')
     assigner = request.args.get('assigner', '')
-    deadline_from = request.args.get('deadline_from', '')
-    deadline_to = request.args.get('deadline_to', '')
-    sort_by = request.args.get('sort_by', 'internal_deadline')
+    sort_by = request.args.get('sort_by', 'client_name')
     sort_order = request.args.get('sort_order', 'asc')
 
     # Build query with filters
@@ -28,25 +26,10 @@ def list():
     if assigner:
         query = query.filter(Project.assigner == assigner)
 
-    # Parse and apply deadline range filter
-    if deadline_from:
-        try:
-            from_date = datetime.strptime(deadline_from, '%Y-%m-%d').date()
-            query = query.filter(Project.internal_deadline >= from_date)
-        except ValueError:
-            pass  # Invalid date format, ignore filter
-
-    if deadline_to:
-        try:
-            to_date = datetime.strptime(deadline_to, '%Y-%m-%d').date()
-            query = query.filter(Project.internal_deadline <= to_date)
-        except ValueError:
-            pass  # Invalid date format, ignore filter
-
     # Validate sort column - only allow specific columns
-    allowed_sort_columns = ['internal_deadline', 'priority', 'staleness', 'client_name']
+    allowed_sort_columns = ['client_name', 'priority', 'staleness', 'created_at']
     if sort_by not in allowed_sort_columns:
-        sort_by = 'internal_deadline'
+        sort_by = 'client_name'
 
     # Apply sorting
     if sort_by == 'staleness':
@@ -61,8 +44,8 @@ def list():
         reverse = (sort_order == 'desc')
         projects.sort(key=lambda p: priority_order.get(p.priority, 1), reverse=reverse)
     else:
-        # Database sorting for deadline
-        sort_column = getattr(Project, sort_by, Project.internal_deadline)
+        # Database sorting for client_name or created_at
+        sort_column = getattr(Project, sort_by, Project.client_name)
         if sort_order == 'desc':
             query = query.order_by(sort_column.desc())
         else:
@@ -82,8 +65,6 @@ def list():
                               'priority': priority,
                               'attorney': attorney,
                               'assigner': assigner,
-                              'deadline_from': deadline_from,
-                              'deadline_to': deadline_to,
                               'sort_by': sort_by,
                               'sort_order': sort_order
                           })
@@ -98,8 +79,6 @@ def new():
         project_name = request.form.get('project_name', '').strip()
         matter_number = request.form.get('matter_number', '').strip() or None
         client_number = request.form.get('client_number', '').strip() or None
-        hard_deadline_str = request.form.get('hard_deadline', '').strip()
-        internal_deadline_str = request.form.get('internal_deadline', '').strip()
         assigner = request.form.get('assigner', '').strip()
         assigned_attorneys = request.form.get('assigned_attorneys', '').strip()
         priority = request.form.get('priority', '').strip()
@@ -112,8 +91,6 @@ def new():
             errors.append('Client name is required.')
         if not project_name:
             errors.append('Project name is required.')
-        if not internal_deadline_str:
-            errors.append('Internal deadline is required.')
         if not assigner:
             errors.append('Assigner is required.')
         if not assigned_attorneys:
@@ -122,21 +99,6 @@ def new():
             errors.append('Priority is required.')
         elif priority not in ('high', 'medium', 'low'):
             errors.append('Priority must be high, medium, or low.')
-
-        # Parse date fields
-        hard_deadline = None
-        if hard_deadline_str:
-            try:
-                hard_deadline = datetime.strptime(hard_deadline_str, '%Y-%m-%d').date()
-            except ValueError:
-                errors.append('Hard deadline must be a valid date (YYYY-MM-DD).')
-
-        internal_deadline = None
-        if internal_deadline_str:
-            try:
-                internal_deadline = datetime.strptime(internal_deadline_str, '%Y-%m-%d').date()
-            except ValueError:
-                errors.append('Internal deadline must be a valid date (YYYY-MM-DD).')
 
         # Parse optional estimated_hours
         estimated_hours = None
@@ -160,8 +122,6 @@ def new():
             project_name=project_name,
             matter_number=matter_number,
             client_number=client_number,
-            hard_deadline=hard_deadline,
-            internal_deadline=internal_deadline,
             assigner=assigner,
             assigned_attorneys=assigned_attorneys,
             priority=priority,
@@ -202,8 +162,6 @@ def edit(id):
         project_name = request.form.get('project_name', '').strip()
         matter_number = request.form.get('matter_number', '').strip() or None
         client_number = request.form.get('client_number', '').strip() or None
-        hard_deadline_str = request.form.get('hard_deadline', '').strip()
-        internal_deadline_str = request.form.get('internal_deadline', '').strip()
         assigner = request.form.get('assigner', '').strip()
         assigned_attorneys = request.form.get('assigned_attorneys', '').strip()
         priority = request.form.get('priority', '').strip()
@@ -216,8 +174,6 @@ def edit(id):
             errors.append('Client name is required.')
         if not project_name:
             errors.append('Project name is required.')
-        if not internal_deadline_str:
-            errors.append('Internal deadline is required.')
         if not assigner:
             errors.append('Assigner is required.')
         if not assigned_attorneys:
@@ -226,21 +182,6 @@ def edit(id):
             errors.append('Priority is required.')
         elif priority not in ('high', 'medium', 'low'):
             errors.append('Priority must be high, medium, or low.')
-
-        # Parse date fields
-        hard_deadline = None
-        if hard_deadline_str:
-            try:
-                hard_deadline = datetime.strptime(hard_deadline_str, '%Y-%m-%d').date()
-            except ValueError:
-                errors.append('Hard deadline must be a valid date (YYYY-MM-DD).')
-
-        internal_deadline = None
-        if internal_deadline_str:
-            try:
-                internal_deadline = datetime.strptime(internal_deadline_str, '%Y-%m-%d').date()
-            except ValueError:
-                errors.append('Internal deadline must be a valid date (YYYY-MM-DD).')
 
         # Parse optional float fields
         estimated_hours = None
@@ -272,8 +213,6 @@ def edit(id):
         project.project_name = project_name
         project.matter_number = matter_number
         project.client_number = client_number
-        project.hard_deadline = hard_deadline
-        project.internal_deadline = internal_deadline
         project.assigner = assigner
         project.assigned_attorneys = assigned_attorneys
         project.priority = priority
@@ -344,9 +283,17 @@ def updates_new(id):
     return redirect(url_for('updates.new', project_id=id))
 
 
-@bp.route('/<int:id>/followups/new')
-def followups_new(id):
-    """Redirect to follow-up form with project pre-selected."""
+@bp.route('/<int:id>/tasks/new')
+def tasks_new(id):
+    """Redirect to task form with project pre-selected."""
     # Verify project exists
     Project.query.get_or_404(id)
-    return redirect(url_for('followups.new', project_id=id))
+    return redirect(url_for('tasks.new', project_id=id))
+
+
+@bp.route('/<int:id>/milestones/new')
+def milestones_new(id):
+    """Redirect to milestone form with project pre-selected."""
+    # Verify project exists
+    Project.query.get_or_404(id)
+    return redirect(url_for('milestones.new', project_id=id))

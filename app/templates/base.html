@@ -12,7 +12,8 @@
         <ul class="nav-links">
             <li><a href="{{ url_for('dashboard.index') }}" {% if request.endpoint == 'dashboard.index' %}class="active"{% endif %}>Dashboard</a></li>
             <li><a href="{{ url_for('projects.list') }}" {% if request.endpoint and request.endpoint.startswith('projects.') %}class="active"{% endif %}>Projects</a></li>
-            <li><a href="{{ url_for('followups.list') }}" {% if request.endpoint and request.endpoint.startswith('followups.') %}class="active"{% endif %}>Follow-ups</a></li>
+            <li><a href="{{ url_for('tasks.list') }}" {% if request.endpoint and request.endpoint.startswith('tasks.') %}class="active"{% endif %}>Tasks</a></li>
+            <li><a href="{{ url_for('milestones.list') }}" {% if request.endpoint and request.endpoint.startswith('milestones.') %}class="active"{% endif %}>Milestones</a></li>
             <li><a href="{{ url_for('export.export_csv') }}">Export CSV</a></li>
             <li><a href="{{ url_for('projects.archived') }}" {% if request.endpoint == 'projects.archived' %}class="active"{% endif %}>Archived</a></li>
         </ul>

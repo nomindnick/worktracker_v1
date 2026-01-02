@@ -33,20 +33,6 @@
             </div>
         </div>
 
-        <div class="form-row">
-            <div class="form-group">
-                <label for="hard_deadline">Hard Deadline</label>
-                <input type="date" id="hard_deadline" name="hard_deadline"
-                       value="{{ project.hard_deadline if project else '' }}">
-            </div>
-
-            <div class="form-group">
-                <label for="internal_deadline">Internal Deadline *</label>
-                <input type="date" id="internal_deadline" name="internal_deadline" required
-                       value="{{ project.internal_deadline if project else '' }}">
-            </div>
-        </div>
-
         <div class="form-group">
             <label for="assigner">Assigner *</label>
             <input type="text" id="assigner" name="assigner" required maxlength="100"

@@ -38,14 +38,6 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="filter-group">
-            <label for="deadline_from">Deadline From</label>
-            <input type="date" name="deadline_from" id="deadline_from" value="{{ current_filters.deadline_from }}">
-        </div>
-        <div class="filter-group">
-            <label for="deadline_to">Deadline To</label>
-            <input type="date" name="deadline_to" id="deadline_to" value="{{ current_filters.deadline_to }}">
-        </div>
         {# Preserve sort state #}
         <input type="hidden" name="sort_by" value="{{ current_filters.sort_by }}">
         <input type="hidden" name="sort_order" value="{{ current_filters.sort_order }}">
@@ -62,7 +54,7 @@
             <tr>
                 <th>
                     {% set new_order = 'desc' if current_filters.sort_by == 'client_name' and current_filters.sort_order == 'asc' else 'asc' %}
-                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, deadline_from=current_filters.deadline_from, deadline_to=current_filters.deadline_to, sort_by='client_name', sort_order=new_order) }}" class="sort-link">
+                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, sort_by='client_name', sort_order=new_order) }}" class="sort-link">
                         Client
                         {% if current_filters.sort_by == 'client_name' %}
                         <span class="sort-indicator">{{ '▲' if current_filters.sort_order == 'asc' else '▼' }}</span>
@@ -71,32 +63,22 @@
                 </th>
                 <th>Project</th>
                 <th>Matter #</th>
-                <th>Hard Deadline</th>
-                <th>
-                    {% set new_order = 'desc' if current_filters.sort_by == 'internal_deadline' and current_filters.sort_order == 'asc' else 'asc' %}
-                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, deadline_from=current_filters.deadline_from, deadline_to=current_filters.deadline_to, sort_by='internal_deadline', sort_order=new_order) }}" class="sort-link">
-                        Internal Deadline
-                        {% if current_filters.sort_by == 'internal_deadline' %}
-                        <span class="sort-indicator">{{ '▲' if current_filters.sort_order == 'asc' else '▼' }}</span>
-                        {% endif %}
-                    </a>
-                </th>
                 <th>Attorneys</th>
                 <th>
                     {% set new_order = 'desc' if current_filters.sort_by == 'priority' and current_filters.sort_order == 'asc' else 'asc' %}
-                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, deadline_from=current_filters.deadline_from, deadline_to=current_filters.deadline_to, sort_by='priority', sort_order=new_order) }}" class="sort-link">
+                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, sort_by='priority', sort_order=new_order) }}" class="sort-link">
                         Priority
                         {% if current_filters.sort_by == 'priority' %}
                         <span class="sort-indicator">{{ '▲' if current_filters.sort_order == 'asc' else '▼' }}</span>
                         {% endif %}
                     </a>
                 </th>
-                <th>Follow-ups</th>
-                <th>Next Follow-up</th>
+                <th>Tasks</th>
+                <th>Next Task</th>
                 <th>Last Updated</th>
                 <th>
                     {% set new_order = 'desc' if current_filters.sort_by == 'staleness' and current_filters.sort_order == 'asc' else 'asc' %}
-                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, deadline_from=current_filters.deadline_from, deadline_to=current_filters.deadline_to, sort_by='staleness', sort_order=new_order) }}" class="sort-link">
+                    <a href="{{ url_for('projects.list', priority=current_filters.priority, attorney=current_filters.attorney, assigner=current_filters.assigner, sort_by='staleness', sort_order=new_order) }}" class="sort-link">
                         Days Stale
                         {% if current_filters.sort_by == 'staleness' %}
                         <span class="sort-indicator">{{ '▲' if current_filters.sort_order == 'asc' else '▼' }}</span>
@@ -112,17 +94,15 @@
                 <td>{{ project.client_name }}</td>
                 <td><a href="{{ url_for('projects.detail', id=project.id) }}">{{ project.project_name }}</a></td>
                 <td>{{ project.matter_number or '-' }}</td>
-                <td>{{ project.hard_deadline or '-' }}</td>
-                <td>{{ project.internal_deadline }}</td>
                 <td>{{ project.assigned_attorneys }}</td>
                 <td><span class="priority priority-{{ project.priority }}">{{ project.priority }}</span></td>
-                <td>{{ project.pending_followup_count }}</td>
-                <td>{{ project.next_followup.due_date if project.next_followup else '-' }}</td>
+                <td>{{ project.pending_task_count }}</td>
+                <td>{{ project.next_task.due_date if project.next_task else '-' }}</td>
                 <td>{{ project.last_update_date.strftime('%Y-%m-%d') if project.last_update_date else '-' }}</td>
                 <td><span class="staleness staleness-{{ project.staleness_level }}">{{ project.days_since_update }}d</span></td>
                 <td>
                     <a href="{{ url_for('updates.new') }}?project_id={{ project.id }}" class="btn btn-small">Add Update</a>
-                    <a href="{{ url_for('followups.new') }}?project_id={{ project.id }}" class="btn btn-small">Add Follow-up</a>
+                    <a href="{{ url_for('tasks.new') }}?project_id={{ project.id }}" class="btn btn-small">Add Task</a>
                 </td>
             </tr>
             {% endfor %}

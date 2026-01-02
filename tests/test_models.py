@@ -12,7 +12,6 @@ class TestProjectModel:
         project = Project(
             client_name='Test Client',
             project_name='Test Project',
-            internal_deadline=date.today(),
             assigned_attorneys='Test Attorney'
         )
         db_session.add(project)
@@ -31,8 +30,7 @@ class TestProjectModel:
             client_name='Full Client',
             project_name='Full Project',
             matter_number='2024-999',
-            hard_deadline=date.today() + timedelta(days=30),
-            internal_deadline=date.today() + timedelta(days=14),
+            client_number='CLT-001',
             assigner='Partner',
             assigned_attorneys='Associate',
             priority='high',
@@ -43,7 +41,7 @@ class TestProjectModel:
         db_session.commit()
 
         assert project.matter_number == '2024-999'
-        assert project.hard_deadline == date.today() + timedelta(days=30)
+        assert project.client_number == 'CLT-001'
         assert project.estimated_hours == 25.5
         assert project.actual_hours == 10.0
 
@@ -54,7 +52,6 @@ class TestProjectModel:
         project = Project(
             client_name='Test',
             project_name='Test',
-            internal_deadline=date.today(),
             assigned_attorneys='Test'
         )
         db_session.add(project)
@@ -70,23 +67,33 @@ class TestProjectModel:
         assert 'Acme Corp' in repr_str
         assert 'Patent Application' in repr_str
 
-    def test_project_followups_relationship(self, sample_project, sample_followup, db_session):
-        """Project has access to related follow-ups."""
-        assert sample_followup in sample_project.followups.all()
+    def test_project_tasks_relationship(self, sample_project, sample_task, db_session):
+        """Project has access to related tasks."""
+        assert sample_task in sample_project.tasks.all()
 
     def test_project_status_updates_relationship(self, sample_project_with_updates, db_session):
         """Project has access to related status updates."""
         assert sample_project_with_updates.status_updates.count() == 2
 
-    def test_project_cascade_delete_followups(self, sample_project, sample_followup, db_session):
-        """Deleting project cascades to delete follow-ups."""
-        from app.models import FollowUp
+    def test_project_cascade_delete_tasks(self, sample_project, sample_task, db_session):
+        """Deleting project cascades to delete tasks."""
+        from app.models import Task
 
-        followup_id = sample_followup.id
+        task_id = sample_task.id
         db_session.delete(sample_project)
         db_session.commit()
 
-        assert FollowUp.query.get(followup_id) is None
+        assert Task.query.get(task_id) is None
+
+    def test_project_cascade_delete_milestones(self, sample_project, sample_milestone, db_session):
+        """Deleting project cascades to delete milestones."""
+        from app.models import Milestone
+
+        milestone_id = sample_milestone.id
+        db_session.delete(sample_project)
+        db_session.commit()
+
+        assert Milestone.query.get(milestone_id) is None
 
     def test_project_cascade_delete_status_updates(self, sample_project_with_updates, db_session):
         """Deleting project cascades to delete status updates."""
@@ -99,35 +106,152 @@ class TestProjectModel:
         assert StatusUpdate.query.filter_by(project_id=project_id).count() == 0
 
 
-class TestFollowUpModel:
-    """Test FollowUp model behavior."""
+class TestTaskModel:
+    """Test Task model behavior."""
 
-    def test_create_followup(self, sample_project, db_session):
-        """FollowUp can be created with required fields."""
-        from app.models import FollowUp
+    def test_create_task(self, sample_project, db_session):
+        """Task can be created with required fields."""
+        from app.models import Task
 
-        followup = FollowUp(
+        task = Task(
             project_id=sample_project.id,
             target_type='associate',
             target_name='John Doe',
             due_date=date.today()
         )
-        db_session.add(followup)
+        db_session.add(task)
         db_session.commit()
 
-        assert followup.id is not None
-        assert followup.completed is False
+        assert task.id is not None
+        assert task.completed is False
+        assert task.priority == 'medium'
 
-    def test_followup_repr(self, sample_followup):
-        """FollowUp __repr__ returns readable string."""
-        repr_str = repr(sample_followup)
+    def test_create_task_with_all_target_types(self, sample_project, db_session):
+        """Task accepts all valid target_type values."""
+        from app.models import Task
+
+        target_types = ['self', 'associate', 'client', 'opposing_counsel', 'assigning_attorney']
+        for idx, target_type in enumerate(target_types):
+            task = Task(
+                project_id=sample_project.id,
+                target_type=target_type,
+                target_name=f'Person {idx}',
+                due_date=date.today() + timedelta(days=idx)
+            )
+            db_session.add(task)
+        db_session.commit()
+
+        tasks = Task.query.filter_by(project_id=sample_project.id).all()
+        assert len(tasks) == 5
+        for task, expected_type in zip(tasks, target_types):
+            assert task.target_type == expected_type
+
+    def test_create_task_with_priority(self, sample_project, db_session):
+        """Task can be created with priority field."""
+        from app.models import Task
+
+        task = Task(
+            project_id=sample_project.id,
+            target_type='self',
+            target_name='Self Task',
+            due_date=date.today(),
+            priority='high'
+        )
+        db_session.add(task)
+        db_session.commit()
+
+        assert task.priority == 'high'
+
+    def test_create_task_with_description(self, sample_project, db_session):
+        """Task can be created with description field."""
+        from app.models import Task
+
+        task = Task(
+            project_id=sample_project.id,
+            target_type='client',
+            target_name='Client Name',
+            due_date=date.today(),
+            description='This is a detailed description of the task.'
+        )
+        db_session.add(task)
+        db_session.commit()
+
+        assert task.description == 'This is a detailed description of the task.'
+
+    def test_task_repr(self, sample_task):
+        """Task __repr__ returns readable string."""
+        repr_str = repr(sample_task)
 
         assert 'John Doe' in repr_str
 
-    def test_followup_project_backref(self, sample_followup):
-        """FollowUp has access to parent project via backref."""
-        assert sample_followup.project is not None
-        assert sample_followup.project.client_name == 'Acme Corp'
+    def test_task_project_backref(self, sample_task):
+        """Task has access to parent project via backref."""
+        assert sample_task.project is not None
+        assert sample_task.project.client_name == 'Acme Corp'
+
+
+class TestMilestoneModel:
+    """Test Milestone model behavior."""
+
+    def test_create_milestone(self, sample_project, db_session):
+        """Milestone can be created with required fields."""
+        from app.models import Milestone
+
+        milestone = Milestone(
+            project_id=sample_project.id,
+            name='Discovery Deadline',
+            date=date.today() + timedelta(days=30)
+        )
+        db_session.add(milestone)
+        db_session.commit()
+
+        assert milestone.id is not None
+        assert milestone.completed is False
+
+    def test_create_milestone_with_all_fields(self, sample_project, db_session):
+        """Milestone stores all optional fields."""
+        from app.models import Milestone
+
+        milestone = Milestone(
+            project_id=sample_project.id,
+            name='Trial Date',
+            description='Final trial hearing scheduled',
+            date=date.today() + timedelta(days=90),
+            completed=False
+        )
+        db_session.add(milestone)
+        db_session.commit()
+
+        assert milestone.name == 'Trial Date'
+        assert milestone.description == 'Final trial hearing scheduled'
+        assert milestone.date == date.today() + timedelta(days=90)
+
+    def test_milestone_created_at_auto_set(self, sample_project, db_session):
+        """Milestone created_at is automatically set."""
+        from app.models import Milestone
+
+        milestone = Milestone(
+            project_id=sample_project.id,
+            name='Test Milestone',
+            date=date.today()
+        )
+        db_session.add(milestone)
+        db_session.commit()
+
+        assert milestone.created_at is not None
+        assert isinstance(milestone.created_at, datetime)
+
+    def test_milestone_repr(self, sample_milestone):
+        """Milestone __repr__ returns readable string."""
+        repr_str = repr(sample_milestone)
+
+        assert 'Initial Filing' in repr_str
+        assert str(sample_milestone.project_id) in repr_str
+
+    def test_milestone_project_backref(self, sample_milestone):
+        """Milestone has access to parent project via backref."""
+        assert sample_milestone.project is not None
+        assert sample_milestone.project.client_name == 'Acme Corp'
 
 
 class TestStatusUpdateModel:
@@ -207,52 +331,52 @@ class TestProjectStalenessProperties:
         assert sample_project.staleness_level == 'critical'
 
 
-class TestProjectFollowupMethods:
-    """Test Project follow-up query methods."""
+class TestProjectTaskMethods:
+    """Test Project task query methods."""
 
-    def test_get_pending_followups(self, sample_project, db_session):
-        """get_pending_followups returns all pending follow-ups ordered by due_date."""
-        from app.models import FollowUp
+    def test_get_pending_tasks(self, sample_project, db_session):
+        """get_pending_tasks returns all pending tasks ordered by due_date."""
+        from app.models import Task
 
-        # Create multiple follow-ups with different due dates
-        followup1 = FollowUp(
+        # Create multiple tasks with different due dates
+        task1 = Task(
             project_id=sample_project.id,
             target_type='associate',
             target_name='Person A',
             due_date=date.today() + timedelta(days=3)
         )
-        followup2 = FollowUp(
+        task2 = Task(
             project_id=sample_project.id,
             target_type='client',
             target_name='Person B',
             due_date=date.today() + timedelta(days=1)
         )
-        followup3 = FollowUp(
+        task3 = Task(
             project_id=sample_project.id,
-            target_type='other',
+            target_type='self',
             target_name='Person C',
             due_date=date.today() + timedelta(days=2),
             completed=True
         )
-        db_session.add_all([followup1, followup2, followup3])
+        db_session.add_all([task1, task2, task3])
         db_session.commit()
 
-        pending = sample_project.get_pending_followups()
+        pending = sample_project.get_pending_tasks()
         assert len(pending) == 2
         assert pending[0].target_name == 'Person B'  # earliest due_date first
         assert pending[1].target_name == 'Person A'
 
-    def test_get_pending_followups_empty(self, sample_project, db_session):
-        """get_pending_followups returns empty list when no pending follow-ups."""
-        pending = sample_project.get_pending_followups()
+    def test_get_pending_tasks_empty(self, sample_project, db_session):
+        """get_pending_tasks returns empty list when no pending tasks."""
+        pending = sample_project.get_pending_tasks()
         assert pending == []
 
-    def test_get_completed_followups(self, sample_project, db_session):
-        """get_completed_followups returns all completed follow-ups ordered by completed_at desc."""
-        from app.models import FollowUp
+    def test_get_completed_tasks(self, sample_project, db_session):
+        """get_completed_tasks returns all completed tasks ordered by completed_at desc."""
+        from app.models import Task
 
-        # Create multiple completed follow-ups
-        followup1 = FollowUp(
+        # Create multiple completed tasks
+        task1 = Task(
             project_id=sample_project.id,
             target_type='associate',
             target_name='Person A',
@@ -260,7 +384,7 @@ class TestProjectFollowupMethods:
             completed=True,
             completed_at=datetime.utcnow() - timedelta(hours=2)
         )
-        followup2 = FollowUp(
+        task2 = Task(
             project_id=sample_project.id,
             target_type='client',
             target_name='Person B',
@@ -268,146 +392,215 @@ class TestProjectFollowupMethods:
             completed=True,
             completed_at=datetime.utcnow() - timedelta(hours=1)
         )
-        followup3 = FollowUp(
+        task3 = Task(
             project_id=sample_project.id,
-            target_type='other',
+            target_type='self',
             target_name='Person C',
             due_date=date.today(),
             completed=False
         )
-        db_session.add_all([followup1, followup2, followup3])
+        db_session.add_all([task1, task2, task3])
         db_session.commit()
 
-        completed = sample_project.get_completed_followups()
+        completed = sample_project.get_completed_tasks()
         assert len(completed) == 2
         assert completed[0].target_name == 'Person B'  # most recent completion first
         assert completed[1].target_name == 'Person A'
 
-    def test_get_completed_followups_empty(self, sample_project, db_session):
-        """get_completed_followups returns empty list when no completed follow-ups."""
-        completed = sample_project.get_completed_followups()
+    def test_get_completed_tasks_empty(self, sample_project, db_session):
+        """get_completed_tasks returns empty list when no completed tasks."""
+        completed = sample_project.get_completed_tasks()
         assert completed == []
 
-    def test_pending_followup_count(self, sample_project, db_session):
-        """pending_followup_count returns count of pending follow-ups."""
-        from app.models import FollowUp
+    def test_pending_task_count(self, sample_project, db_session):
+        """pending_task_count returns count of pending tasks."""
+        from app.models import Task
 
-        assert sample_project.pending_followup_count == 0
+        assert sample_project.pending_task_count == 0
 
-        followup1 = FollowUp(
+        task1 = Task(
             project_id=sample_project.id,
             target_type='associate',
             target_name='Person A',
             due_date=date.today()
         )
-        followup2 = FollowUp(
+        task2 = Task(
             project_id=sample_project.id,
             target_type='client',
             target_name='Person B',
             due_date=date.today(),
             completed=True
         )
-        db_session.add_all([followup1, followup2])
+        db_session.add_all([task1, task2])
         db_session.commit()
 
-        assert sample_project.pending_followup_count == 1
+        assert sample_project.pending_task_count == 1
 
-    def test_next_followup(self, sample_project, db_session):
-        """next_followup returns the earliest pending follow-up."""
-        from app.models import FollowUp
+    def test_next_task(self, sample_project, db_session):
+        """next_task returns the earliest pending task."""
+        from app.models import Task
 
-        assert sample_project.next_followup is None
+        assert sample_project.next_task is None
 
-        followup1 = FollowUp(
+        task1 = Task(
             project_id=sample_project.id,
             target_type='associate',
             target_name='Person A',
             due_date=date.today() + timedelta(days=3)
         )
-        followup2 = FollowUp(
+        task2 = Task(
             project_id=sample_project.id,
             target_type='client',
             target_name='Person B',
             due_date=date.today() + timedelta(days=1)
         )
-        db_session.add_all([followup1, followup2])
+        db_session.add_all([task1, task2])
         db_session.commit()
 
-        next_followup = sample_project.next_followup
-        assert next_followup is not None
-        assert next_followup.target_name == 'Person B'
+        next_task = sample_project.next_task
+        assert next_task is not None
+        assert next_task.target_name == 'Person B'
 
-    def test_next_followup_ignores_completed(self, sample_project, db_session):
-        """next_followup ignores completed follow-ups."""
-        from app.models import FollowUp
+    def test_next_task_ignores_completed(self, sample_project, db_session):
+        """next_task ignores completed tasks."""
+        from app.models import Task
 
-        followup1 = FollowUp(
+        task1 = Task(
             project_id=sample_project.id,
             target_type='associate',
             target_name='Person A',
             due_date=date.today(),
             completed=True
         )
-        followup2 = FollowUp(
+        task2 = Task(
             project_id=sample_project.id,
             target_type='client',
             target_name='Person B',
             due_date=date.today() + timedelta(days=2)
         )
-        db_session.add_all([followup1, followup2])
+        db_session.add_all([task1, task2])
         db_session.commit()
 
-        next_followup = sample_project.next_followup
-        assert next_followup.target_name == 'Person B'
+        next_task = sample_project.next_task
+        assert next_task.target_name == 'Person B'
 
 
-class TestProjectEffectiveDeadline:
-    """Test Project.effective_deadline property."""
+class TestProjectMilestoneMethods:
+    """Test Project milestone query methods."""
 
-    def test_returns_internal_when_both_set(self, db_session):
-        """Returns internal_deadline when both deadlines exist."""
-        from app.models import Project
+    def test_get_pending_milestones(self, sample_project, db_session):
+        """get_pending_milestones returns all pending milestones ordered by date."""
+        from app.models import Milestone
 
-        project = Project(
-            client_name='Test',
-            project_name='Test',
-            internal_deadline=date.today() + timedelta(days=7),
-            hard_deadline=date.today() + timedelta(days=14),
-            assigned_attorneys='Test'
+        # Create multiple milestones with different dates
+        milestone1 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone A',
+            date=date.today() + timedelta(days=30)
         )
-        db_session.add(project)
-        db_session.commit()
-
-        assert project.effective_deadline == date.today() + timedelta(days=7)
-
-    def test_returns_internal_when_only_internal_set(self, sample_project, db_session):
-        """Returns internal_deadline when only it exists."""
-        # sample_project has only internal_deadline set
-        assert sample_project.effective_deadline == sample_project.internal_deadline
-
-
-class TestProjectDeadlineType:
-    """Test Project.deadline_type property."""
-
-    def test_returns_internal_when_internal_set(self, sample_project, db_session):
-        """Returns 'internal' when internal_deadline exists."""
-        assert sample_project.deadline_type == 'internal'
-
-    def test_returns_internal_when_both_set(self, db_session):
-        """Returns 'internal' when both deadlines exist (internal takes precedence)."""
-        from app.models import Project
-
-        project = Project(
-            client_name='Test',
-            project_name='Test',
-            internal_deadline=date.today(),
-            hard_deadline=date.today() + timedelta(days=14),
-            assigned_attorneys='Test'
+        milestone2 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone B',
+            date=date.today() + timedelta(days=10)
         )
-        db_session.add(project)
+        milestone3 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone C',
+            date=date.today() + timedelta(days=20),
+            completed=True
+        )
+        db_session.add_all([milestone1, milestone2, milestone3])
         db_session.commit()
 
-        assert project.deadline_type == 'internal'
+        pending = sample_project.get_pending_milestones()
+        assert len(pending) == 2
+        assert pending[0].name == 'Milestone B'  # earliest date first
+        assert pending[1].name == 'Milestone A'
+
+    def test_get_pending_milestones_empty(self, sample_project, db_session):
+        """get_pending_milestones returns empty list when no pending milestones."""
+        pending = sample_project.get_pending_milestones()
+        assert pending == []
+
+    def test_get_completed_milestones(self, sample_project, db_session):
+        """get_completed_milestones returns all completed milestones ordered by date desc."""
+        from app.models import Milestone
+
+        # Create multiple completed milestones
+        milestone1 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone A',
+            date=date.today() - timedelta(days=10),
+            completed=True
+        )
+        milestone2 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone B',
+            date=date.today() - timedelta(days=5),
+            completed=True
+        )
+        milestone3 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone C',
+            date=date.today() + timedelta(days=20),
+            completed=False
+        )
+        db_session.add_all([milestone1, milestone2, milestone3])
+        db_session.commit()
+
+        completed = sample_project.get_completed_milestones()
+        assert len(completed) == 2
+        assert completed[0].name == 'Milestone B'  # most recent date first
+        assert completed[1].name == 'Milestone A'
+
+    def test_get_completed_milestones_empty(self, sample_project, db_session):
+        """get_completed_milestones returns empty list when no completed milestones."""
+        completed = sample_project.get_completed_milestones()
+        assert completed == []
+
+    def test_next_milestone(self, sample_project, db_session):
+        """next_milestone returns the earliest pending milestone."""
+        from app.models import Milestone
+
+        assert sample_project.next_milestone is None
+
+        milestone1 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone A',
+            date=date.today() + timedelta(days=30)
+        )
+        milestone2 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone B',
+            date=date.today() + timedelta(days=10)
+        )
+        db_session.add_all([milestone1, milestone2])
+        db_session.commit()
+
+        next_milestone = sample_project.next_milestone
+        assert next_milestone is not None
+        assert next_milestone.name == 'Milestone B'
+
+    def test_next_milestone_ignores_completed(self, sample_project, db_session):
+        """next_milestone ignores completed milestones."""
+        from app.models import Milestone
+
+        milestone1 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone A',
+            date=date.today() + timedelta(days=5),
+            completed=True
+        )
+        milestone2 = Milestone(
+            project_id=sample_project.id,
+            name='Milestone B',
+            date=date.today() + timedelta(days=15)
+        )
+        db_session.add_all([milestone1, milestone2])
+        db_session.commit()
+
+        next_milestone = sample_project.next_milestone
+        assert next_milestone.name == 'Milestone B'
 
 
 class TestProjectLatestStatusUpdate:

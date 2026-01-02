@@ -10,8 +10,6 @@ class Project(db.Model):
     project_name = db.Column(db.String(500), nullable=False)
     matter_number = db.Column(db.String(50))
     client_number = db.Column(db.String(50))
-    hard_deadline = db.Column(db.Date)
-    internal_deadline = db.Column(db.Date, nullable=False, index=True)
     assigner = db.Column(db.String(200), nullable=False, default='Self')
     assigned_attorneys = db.Column(db.String(500), nullable=False)
     priority = db.Column(db.String(10), nullable=False, default='medium')
@@ -22,7 +20,8 @@ class Project(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    followups = db.relationship('FollowUp', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    tasks = db.relationship('Task', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    milestones = db.relationship('Milestone', backref='project', lazy='dynamic', cascade='all, delete-orphan')
     status_updates = db.relationship('StatusUpdate', backref='project', lazy='dynamic', cascade='all, delete-orphan')
 
     @property
@@ -53,44 +52,42 @@ class Project(db.Model):
             return 'warning'
         return 'ok'
 
-    def get_pending_followups(self):
-        """Get all pending follow-ups ordered by due_date ascending."""
-        from app.models import FollowUp
-        return self.followups.filter_by(completed=False).order_by(FollowUp.due_date.asc()).all()
+    def get_pending_tasks(self):
+        """Get all pending tasks ordered by due_date ascending, then priority."""
+        from app.models import Task
+        return self.tasks.filter_by(completed=False).order_by(Task.due_date.asc()).all()
 
-    def get_completed_followups(self):
-        """Get all completed follow-ups ordered by completed_at descending (newest first)."""
-        from app.models import FollowUp
-        return self.followups.filter_by(completed=True).order_by(FollowUp.completed_at.desc()).all()
-
-    @property
-    def pending_followup_count(self):
-        """Return count of pending follow-ups."""
-        return self.followups.filter_by(completed=False).count()
+    def get_completed_tasks(self):
+        """Get all completed tasks ordered by completed_at descending (newest first)."""
+        from app.models import Task
+        return self.tasks.filter_by(completed=True).order_by(Task.completed_at.desc()).all()
 
     @property
-    def next_followup(self):
-        """Return the next pending follow-up (earliest due_date), or None."""
-        from app.models import FollowUp
-        return self.followups.filter_by(completed=False).order_by(FollowUp.due_date.asc()).first()
+    def pending_task_count(self):
+        """Return count of pending tasks."""
+        return self.tasks.filter_by(completed=False).count()
 
     @property
-    def effective_deadline(self):
-        """Return internal_deadline if set, else hard_deadline."""
-        # Note: internal_deadline is required (nullable=False), so the fallback path
-        # to hard_deadline is only for defensive programming
-        return self.internal_deadline if self.internal_deadline else self.hard_deadline  # pragma: no cover (fallback)
+    def next_task(self):
+        """Return the next pending task (earliest due_date), or None."""
+        from app.models import Task
+        return self.tasks.filter_by(completed=False).order_by(Task.due_date.asc()).first()
+
+    def get_pending_milestones(self):
+        """Get all pending milestones ordered by date ascending."""
+        from app.models import Milestone
+        return self.milestones.filter_by(completed=False).order_by(Milestone.date.asc()).all()
+
+    def get_completed_milestones(self):
+        """Get all completed milestones ordered by date descending."""
+        from app.models import Milestone
+        return self.milestones.filter_by(completed=True).order_by(Milestone.date.desc()).all()
 
     @property
-    def deadline_type(self):
-        """Return 'internal', 'hard', or None to indicate which deadline is effective."""
-        # Note: internal_deadline is required (nullable=False), so the 'hard' and None
-        # cases are only for defensive programming
-        if self.internal_deadline:
-            return 'internal'
-        elif self.hard_deadline:  # pragma: no cover
-            return 'hard'  # pragma: no cover
-        return None  # pragma: no cover
+    def next_milestone(self):
+        """Return the next pending milestone (earliest date), or None."""
+        from app.models import Milestone
+        return self.milestones.filter_by(completed=False).order_by(Milestone.date.asc()).first()
 
     @property
     def latest_status_update(self):
@@ -119,21 +116,37 @@ class Project(db.Model):
         return f'<Project {self.client_name}: {self.project_name}>'
 
 
-class FollowUp(db.Model):
-    __tablename__ = 'followups'
+class Task(db.Model):
+    __tablename__ = 'tasks'
 
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
-    target_type = db.Column(db.String(20), nullable=False)  # associate, client, opposing_counsel, other
+    target_type = db.Column(db.String(20), nullable=False)  # self, associate, client, opposing_counsel, assigning_attorney
     target_name = db.Column(db.String(200), nullable=False)
     due_date = db.Column(db.Date, nullable=False, index=True)
-    notes = db.Column(db.Text)
+    description = db.Column(db.Text)
+    priority = db.Column(db.String(10), nullable=False, default='medium')  # high, medium, low
     completed = db.Column(db.Boolean, nullable=False, default=False, index=True)
     completed_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return f'<FollowUp {self.target_name} by {self.due_date}>'
+        return f'<Task {self.target_name} by {self.due_date}>'
+
+
+class Milestone(db.Model):
+    __tablename__ = 'milestones'
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    date = db.Column(db.Date, nullable=False, index=True)
+    completed = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Milestone {self.name} for project {self.project_id}>'
 
 
 class StatusUpdate(db.Model):

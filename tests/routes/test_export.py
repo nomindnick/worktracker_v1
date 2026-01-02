@@ -62,32 +62,13 @@ class TestExportCSV:
         csv_content = response.data.decode('utf-8')
         assert 'Draft in progress' in csv_content
 
-    def test_export_csv_includes_next_followup(self, client, sample_followup, db_session):
-        """Export CSV includes next follow-up date."""
+    def test_export_csv_includes_next_task(self, client, sample_task, db_session):
+        """Export CSV includes next task date."""
         response = client.get('/export/')
 
         csv_content = response.data.decode('utf-8')
         expected_date = (date.today() + timedelta(days=3)).isoformat()
         assert expected_date in csv_content
-
-    def test_export_csv_handles_null_hard_deadline(self, client, db_session):
-        """Export CSV handles projects without hard deadline."""
-        from app.models import Project
-
-        project = Project(
-            client_name='No Deadline Corp',
-            project_name='No Deadline Project',
-            internal_deadline=date.today(),
-            assigned_attorneys='Test'
-        )
-        db_session.add(project)
-        db_session.commit()
-
-        response = client.get('/export/')
-
-        assert response.status_code == 200
-        csv_content = response.data.decode('utf-8')
-        assert 'No Deadline Corp' in csv_content
 
     def test_export_csv_handles_null_matter_number(self, client, db_session):
         """Export CSV handles projects without matter number."""
@@ -96,7 +77,7 @@ class TestExportCSV:
         project = Project(
             client_name='No Matter Corp',
             project_name='No Matter Project',
-            internal_deadline=date.today(),
+            assigner='Self',
             assigned_attorneys='Test'
         )
         db_session.add(project)
@@ -112,8 +93,17 @@ class TestExportCSV:
 
         assert response.status_code == 200
 
-    def test_export_csv_handles_project_without_followups(self, client, sample_project, db_session):
-        """Export CSV handles projects with no follow-ups."""
+    def test_export_csv_handles_project_without_tasks(self, client, sample_project, db_session):
+        """Export CSV handles projects with no tasks."""
         response = client.get('/export/')
 
         assert response.status_code == 200
+
+    def test_export_csv_has_next_task_column(self, client, db_session):
+        """Export CSV includes Next Task column header."""
+        response = client.get('/export/')
+
+        reader = csv.reader(StringIO(response.data.decode('utf-8')))
+        headers = next(reader)
+
+        assert 'Next Task' in headers

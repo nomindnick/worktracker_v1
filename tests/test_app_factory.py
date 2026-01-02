@@ -25,9 +25,13 @@ class TestCreateApp:
         """Projects blueprint is registered with /projects prefix."""
         assert 'projects' in app.blueprints
 
-    def test_followups_blueprint_registered(self, app):
-        """Followups blueprint is registered with /followups prefix."""
-        assert 'followups' in app.blueprints
+    def test_tasks_blueprint_registered(self, app):
+        """Tasks blueprint is registered with /tasks prefix."""
+        assert 'tasks' in app.blueprints
+
+    def test_milestones_blueprint_registered(self, app):
+        """Milestones blueprint is registered with /milestones prefix."""
+        assert 'milestones' in app.blueprints
 
     def test_updates_blueprint_registered(self, app):
         """Updates blueprint is registered with /updates prefix."""
@@ -57,5 +61,6 @@ class TestInitDbCommand:
             inspector = db.inspect(db.engine)
             tables = inspector.get_table_names()
             assert 'projects' in tables
-            assert 'followups' in tables
+            assert 'tasks' in tables
+            assert 'milestones' in tables
             assert 'status_updates' in tables

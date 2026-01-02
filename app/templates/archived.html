@@ -16,8 +16,6 @@
                 <th>Client</th>
                 <th>Project</th>
                 <th>Matter #</th>
-                <th>Hard Deadline</th>
-                <th>Internal Deadline</th>
                 <th>Attorneys</th>
                 <th>Priority</th>
                 <th>Estimated Hours</th>
@@ -32,8 +30,6 @@
                 <td>{{ project.client_name }}</td>
                 <td><a href="{{ url_for('projects.detail', id=project.id) }}">{{ project.project_name }}</a></td>
                 <td>{{ project.matter_number or '-' }}</td>
-                <td>{{ project.hard_deadline or '-' }}</td>
-                <td>{{ project.internal_deadline }}</td>
                 <td>{{ project.assigned_attorneys }}</td>
                 <td><span class="priority priority-{{ project.priority }}">{{ project.priority }}</span></td>
                 <td>{{ project.estimated_hours or '-' }}</td>

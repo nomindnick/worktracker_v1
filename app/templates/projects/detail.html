@@ -27,12 +27,6 @@
             <dt>Matter Number</dt>
             <dd>{{ project.matter_number or '-' }}</dd>
 
-            <dt>Hard Deadline</dt>
-            <dd>{{ project.hard_deadline or '-' }}</dd>
-
-            <dt>Internal Deadline</dt>
-            <dd>{{ project.internal_deadline }}</dd>
-
             <dt>Assigner</dt>
             <dd>{{ project.assigner }}</dd>
 
@@ -48,6 +42,63 @@
             <dt>Actual Hours</dt>
             <dd>{{ project.actual_hours or '-' }}</dd>
         </dl>
+    </section>
+
+    <section class="milestones">
+        <div class="section-header">
+            <h2>Milestones</h2>
+            <a href="{{ url_for('milestones.new') }}?project_id={{ project.id }}" class="btn btn-small">Add Milestone</a>
+        </div>
+
+        <h3>Upcoming</h3>
+        {% set pending_milestones = project.get_pending_milestones() %}
+        {% if pending_milestones %}
+        <ul class="milestone-list">
+            {% for milestone in pending_milestones %}
+            <li class="milestone-item">
+                <div class="milestone-info">
+                    <span class="milestone-name">{{ milestone.name }}</span>
+                    <span class="milestone-date">{{ milestone.date }}</span>
+                    {% if milestone.description %}
+                    <p class="milestone-description">{{ milestone.description }}</p>
+                    {% endif %}
+                </div>
+                <div class="milestone-actions">
+                    <form action="{{ url_for('milestones.complete', id=milestone.id) }}" method="post" style="display: inline;" data-confirm="Mark this milestone as complete?">
+                        <button type="submit" class="btn btn-small btn-success">Complete</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-state">No upcoming milestones.</p>
+        {% endif %}
+
+        <h3>Completed</h3>
+        {% set completed_milestones = project.get_completed_milestones() %}
+        {% if completed_milestones %}
+        <ul class="milestone-list">
+            {% for milestone in completed_milestones %}
+            <li class="milestone-item milestone-completed">
+                <div class="milestone-info">
+                    <span class="milestone-name">{{ milestone.name }}</span>
+                    <span class="milestone-date">{{ milestone.date }}</span>
+                    {% if milestone.description %}
+                    <p class="milestone-description">{{ milestone.description }}</p>
+                    {% endif %}
+                </div>
+                <div class="milestone-actions">
+                    <form action="{{ url_for('milestones.uncomplete', id=milestone.id) }}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-small">Undo</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-state">No completed milestones.</p>
+        {% endif %}
     </section>
 
     <section class="status-updates">
@@ -70,31 +121,32 @@
         {% endif %}
     </section>
 
-    <section class="followups">
+    <section class="tasks">
         <div class="section-header">
-            <h2>Follow-ups</h2>
-            <a href="{{ url_for('followups.new') }}?project_id={{ project.id }}" class="btn btn-small">Add Follow-up</a>
+            <h2>Tasks</h2>
+            <a href="{{ url_for('tasks.new') }}?project_id={{ project.id }}" class="btn btn-small">Add Task</a>
         </div>
 
         <h3>Pending</h3>
-        {% set pending = project.get_pending_followups() %}
+        {% set pending = project.get_pending_tasks() %}
         {% if pending %}
-        <ul class="followup-list">
-            {% for followup in pending %}
-            <li class="followup-item">
-                <div class="followup-info">
-                    <span class="followup-target">{{ followup.target_name }}</span>
-                    <span class="followup-type">({{ followup.target_type | replace('_', ' ') | title }})</span>
-                    <span class="followup-due">Due: {{ followup.due_date }}</span>
-                    {% if followup.notes %}
-                    <p class="followup-notes">{{ followup.notes }}</p>
+        <ul class="task-list">
+            {% for task in pending %}
+            <li class="task-item">
+                <div class="task-info">
+                    <span class="task-target">{{ task.target_name }}</span>
+                    <span class="task-type">({{ task.target_type | replace('_', ' ') | title }})</span>
+                    <span class="task-due">Due: {{ task.due_date }}</span>
+                    <span class="priority priority-{{ task.priority }}">{{ task.priority }}</span>
+                    {% if task.description %}
+                    <p class="task-description">{{ task.description }}</p>
                     {% endif %}
                 </div>
-                <div class="followup-actions">
-                    <form action="{{ url_for('followups.complete', id=followup.id) }}" method="post" style="display: inline;" data-confirm="Mark this follow-up as complete?">
+                <div class="task-actions">
+                    <form action="{{ url_for('tasks.complete', id=task.id) }}" method="post" style="display: inline;" data-confirm="Mark this task as complete?">
                         <button type="submit" class="btn btn-small btn-success">Complete</button>
                     </form>
-                    <form action="{{ url_for('followups.snooze', id=followup.id) }}" method="post" style="display: inline;">
+                    <form action="{{ url_for('tasks.snooze', id=task.id) }}" method="post" style="display: inline;">
                         <input type="number" name="days" value="1" min="1" max="365" style="width: 50px;">
                         <button type="submit" class="btn btn-small">Snooze</button>
                     </form>
@@ -103,28 +155,28 @@
             {% endfor %}
         </ul>
         {% else %}
-        <p class="empty-state">No pending follow-ups.</p>
+        <p class="empty-state">No pending tasks.</p>
         {% endif %}
 
         <h3>Completed</h3>
-        {% set completed = project.get_completed_followups() %}
+        {% set completed = project.get_completed_tasks() %}
         {% if completed %}
-        <ul class="followup-list">
-            {% for followup in completed %}
-            <li class="followup-item followup-completed">
-                <div class="followup-info">
-                    <span class="followup-target">{{ followup.target_name }}</span>
-                    <span class="followup-type">({{ followup.target_type | replace('_', ' ') | title }})</span>
-                    <span class="followup-completed-at">Completed: {{ followup.completed_at.strftime('%Y-%m-%d %H:%M') }}</span>
-                    {% if followup.notes %}
-                    <p class="followup-notes">{{ followup.notes }}</p>
+        <ul class="task-list">
+            {% for task in completed %}
+            <li class="task-item task-completed">
+                <div class="task-info">
+                    <span class="task-target">{{ task.target_name }}</span>
+                    <span class="task-type">({{ task.target_type | replace('_', ' ') | title }})</span>
+                    <span class="task-completed-at">Completed: {{ task.completed_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    {% if task.description %}
+                    <p class="task-description">{{ task.description }}</p>
                     {% endif %}
                 </div>
             </li>
             {% endfor %}
         </ul>
         {% else %}
-        <p class="empty-state">No completed follow-ups.</p>
+        <p class="empty-state">No completed tasks.</p>
         {% endif %}
     </section>
 </div>

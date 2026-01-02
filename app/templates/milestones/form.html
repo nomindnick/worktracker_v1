@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}{% if milestone %}Edit Milestone{% else %}New Milestone{% endif %} - Legal Worklist{% endblock %}
+
+{% block content %}
+<div class="milestone-form">
+    <h1>{% if milestone %}Edit Milestone{% else %}New Milestone{% endif %}</h1>
+
+    <form method="post" class="form">
+        <div class="form-group">
+            <label for="project_id">Project *</label>
+            <select id="project_id" name="project_id" required>
+                <option value="">Select a project...</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}" {% if selected_project_id == project.id %}selected{% endif %}>
+                    {{ project.client_name }}: {{ project.project_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="name">Milestone Name *</label>
+            <input type="text" id="name" name="name" required maxlength="200"
+                   placeholder="e.g., Discovery Cutoff, Motion Deadline, Trial Date"
+                   value="{{ milestone.name if milestone else '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="date">Date *</label>
+            <input type="date" id="date" name="date" required
+                   value="{{ milestone.date if milestone else '' }}">
+            <div class="quick-dates">
+                <button type="button" class="btn btn-small" data-days="7">1 Week</button>
+                <button type="button" class="btn btn-small" data-days="14">2 Weeks</button>
+                <button type="button" class="btn btn-small" data-days="30">1 Month</button>
+                <button type="button" class="btn btn-small" data-days="90">3 Months</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="4" maxlength="2000"
+                      placeholder="Additional details about this milestone">{{ milestone.description if milestone else '' }}</textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{% if milestone %}Save Changes{% else %}Create Milestone{% endif %}</button>
+            <a href="{{ url_for('dashboard.index') }}" class="btn">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
