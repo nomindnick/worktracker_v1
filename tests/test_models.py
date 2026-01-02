@@ -359,3 +359,164 @@ class TestProjectFollowupMethods:
 
         next_followup = sample_project.next_followup
         assert next_followup.target_name == 'Person B'
+
+
+class TestProjectEffectiveDeadline:
+    """Test Project.effective_deadline property."""
+
+    def test_returns_internal_when_both_set(self, db_session):
+        """Returns internal_deadline when both deadlines exist."""
+        from app.models import Project
+
+        project = Project(
+            client_name='Test',
+            project_name='Test',
+            internal_deadline=date.today() + timedelta(days=7),
+            hard_deadline=date.today() + timedelta(days=14),
+            assigned_attorneys='Test'
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        assert project.effective_deadline == date.today() + timedelta(days=7)
+
+    def test_returns_internal_when_only_internal_set(self, sample_project, db_session):
+        """Returns internal_deadline when only it exists."""
+        # sample_project has only internal_deadline set
+        assert sample_project.effective_deadline == sample_project.internal_deadline
+
+
+class TestProjectDeadlineType:
+    """Test Project.deadline_type property."""
+
+    def test_returns_internal_when_internal_set(self, sample_project, db_session):
+        """Returns 'internal' when internal_deadline exists."""
+        assert sample_project.deadline_type == 'internal'
+
+    def test_returns_internal_when_both_set(self, db_session):
+        """Returns 'internal' when both deadlines exist (internal takes precedence)."""
+        from app.models import Project
+
+        project = Project(
+            client_name='Test',
+            project_name='Test',
+            internal_deadline=date.today(),
+            hard_deadline=date.today() + timedelta(days=14),
+            assigned_attorneys='Test'
+        )
+        db_session.add(project)
+        db_session.commit()
+
+        assert project.deadline_type == 'internal'
+
+
+class TestProjectLatestStatusUpdate:
+    """Test Project.latest_status_update property."""
+
+    def test_returns_most_recent_update(self, sample_project, db_session):
+        """Returns the most recent StatusUpdate."""
+        from app.models import StatusUpdate
+
+        update1 = StatusUpdate(
+            project_id=sample_project.id,
+            notes='First update'
+        )
+        db_session.add(update1)
+        db_session.commit()
+
+        update2 = StatusUpdate(
+            project_id=sample_project.id,
+            notes='Second update'
+        )
+        db_session.add(update2)
+        db_session.commit()
+
+        latest = sample_project.latest_status_update
+        assert latest is not None
+        assert latest.notes == 'Second update'
+
+    def test_returns_none_when_no_updates(self, sample_project, db_session):
+        """Returns None when project has no updates."""
+        assert sample_project.latest_status_update is None
+
+
+class TestProjectStatusPreview:
+    """Test Project.get_status_preview() method."""
+
+    def test_returns_first_3_lines(self, sample_project, db_session):
+        """Returns first 3 lines of latest status notes."""
+        from app.models import StatusUpdate
+
+        update = StatusUpdate(
+            project_id=sample_project.id,
+            notes='Line 1\nLine 2\nLine 3\nLine 4\nLine 5'
+        )
+        db_session.add(update)
+        db_session.commit()
+
+        preview = sample_project.get_status_preview()
+        assert preview is not None
+        assert preview['text'] == 'Line 1\nLine 2\nLine 3'
+
+    def test_has_more_true_when_exceeds_limit(self, sample_project, db_session):
+        """has_more is True when notes exceed line limit."""
+        from app.models import StatusUpdate
+
+        update = StatusUpdate(
+            project_id=sample_project.id,
+            notes='Line 1\nLine 2\nLine 3\nLine 4'
+        )
+        db_session.add(update)
+        db_session.commit()
+
+        preview = sample_project.get_status_preview()
+        assert preview['has_more'] is True
+        assert preview['full_text'] == 'Line 1\nLine 2\nLine 3\nLine 4'
+
+    def test_has_more_false_when_within_limit(self, sample_project, db_session):
+        """has_more is False when notes are within limit."""
+        from app.models import StatusUpdate
+
+        update = StatusUpdate(
+            project_id=sample_project.id,
+            notes='Line 1\nLine 2'
+        )
+        db_session.add(update)
+        db_session.commit()
+
+        preview = sample_project.get_status_preview()
+        assert preview['has_more'] is False
+        assert preview['full_text'] is None
+
+    def test_returns_none_when_no_updates(self, sample_project, db_session):
+        """Returns None when project has no updates."""
+        assert sample_project.get_status_preview() is None
+
+    def test_custom_max_lines(self, sample_project, db_session):
+        """Respects custom max_lines parameter."""
+        from app.models import StatusUpdate
+
+        update = StatusUpdate(
+            project_id=sample_project.id,
+            notes='Line 1\nLine 2\nLine 3\nLine 4\nLine 5'
+        )
+        db_session.add(update)
+        db_session.commit()
+
+        preview = sample_project.get_status_preview(max_lines=2)
+        assert preview['text'] == 'Line 1\nLine 2'
+        assert preview['has_more'] is True
+
+    def test_handles_empty_notes(self, sample_project, db_session):
+        """Returns None when notes is empty string."""
+        from app.models import StatusUpdate
+
+        update = StatusUpdate(
+            project_id=sample_project.id,
+            notes=''
+        )
+        db_session.add(update)
+        db_session.commit()
+
+        # Empty notes should return None
+        assert sample_project.get_status_preview() is None

@@ -74,6 +74,47 @@ class Project(db.Model):
         from app.models import FollowUp
         return self.followups.filter_by(completed=False).order_by(FollowUp.due_date.asc()).first()
 
+    @property
+    def effective_deadline(self):
+        """Return internal_deadline if set, else hard_deadline."""
+        # Note: internal_deadline is required (nullable=False), so the fallback path
+        # to hard_deadline is only for defensive programming
+        return self.internal_deadline if self.internal_deadline else self.hard_deadline  # pragma: no cover (fallback)
+
+    @property
+    def deadline_type(self):
+        """Return 'internal', 'hard', or None to indicate which deadline is effective."""
+        # Note: internal_deadline is required (nullable=False), so the 'hard' and None
+        # cases are only for defensive programming
+        if self.internal_deadline:
+            return 'internal'
+        elif self.hard_deadline:  # pragma: no cover
+            return 'hard'  # pragma: no cover
+        return None  # pragma: no cover
+
+    @property
+    def latest_status_update(self):
+        """Return the most recent StatusUpdate object, or None."""
+        from app.models import StatusUpdate
+        return self.status_updates.order_by(StatusUpdate.created_at.desc()).first()
+
+    def get_status_preview(self, max_lines=3):
+        """Return first N lines of latest status notes with has_more flag.
+
+        Returns dict with 'text', 'has_more', 'full_text' keys, or None if no updates.
+        """
+        update = self.latest_status_update
+        if not update or not update.notes:
+            return None
+        lines = update.notes.strip().split('\n')
+        preview_lines = lines[:max_lines]
+        has_more = len(lines) > max_lines
+        return {
+            'text': '\n'.join(preview_lines),
+            'has_more': has_more,
+            'full_text': update.notes if has_more else None
+        }
+
     def __repr__(self):
         return f'<Project {self.client_name}: {self.project_name}>'
 

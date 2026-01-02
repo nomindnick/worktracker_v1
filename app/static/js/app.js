@@ -99,4 +99,22 @@ document.addEventListener('DOMContentLoaded', function() {
             pendingForm = null;
         }
     });
+
+    // Status preview expand/collapse
+    document.querySelectorAll('.btn-expand').forEach(function(button) {
+        button.addEventListener('click', function() {
+            var preview = this.closest('.status-preview');
+            var previewText = preview.querySelector('.preview-text');
+            var fullText = this.getAttribute('data-full-text');
+
+            if (this.textContent === 'Show more...') {
+                this.setAttribute('data-preview-text', previewText.textContent);
+                previewText.textContent = fullText;
+                this.textContent = 'Show less';
+            } else {
+                previewText.textContent = this.getAttribute('data-preview-text');
+                this.textContent = 'Show more...';
+            }
+        });
+    });
 });

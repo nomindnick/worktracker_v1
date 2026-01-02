@@ -6,110 +6,124 @@
 <div class="dashboard">
     <h1>Today</h1>
 
+    {# Macro for rendering a project card with inline follow-ups #}
+    {% macro project_card(project) %}
+    <li class="project-card {% if project.staleness_level != 'ok' %}staleness-{{ project.staleness_level }}{% endif %}">
+        <div class="project-header">
+            <div class="project-title">
+                <strong>{{ project.client_name }}</strong>: {{ project.project_name }}
+                {% if project.staleness_level != 'ok' %}
+                <span class="staleness-badge staleness-{{ project.staleness_level }}">
+                    {{ project.days_since_update }}d stale
+                </span>
+                {% endif %}
+            </div>
+            <div class="project-deadline">
+                {% if project.effective_deadline %}
+                <span class="deadline deadline-{{ project.deadline_type }}">
+                    {{ project.effective_deadline.strftime('%b %d') }}
+                    {% if project.deadline_type == 'hard' %}(hard){% endif %}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Latest status preview #}
+        {% set preview = project.get_status_preview(3) %}
+        {% if preview %}
+        <div class="status-preview">
+            <p class="preview-text">{{ preview.text }}</p>
+            {% if preview.has_more %}
+            <button type="button" class="btn-expand" data-full-text="{{ preview.full_text | e }}">
+                Show more...
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# Inline follow-ups #}
+        {% set pending_followups = project.get_pending_followups() %}
+        {% if pending_followups %}
+        <div class="inline-followups">
+            <span class="followups-label">Follow-ups:</span>
+            <ul class="followup-inline-list">
+                {% for followup in pending_followups %}
+                <li class="followup-inline {% if followup.due_date < today %}followup-overdue{% elif followup.due_date == today %}followup-due-today{% endif %}">
+                    <span class="followup-target">{{ followup.target_name }}</span>
+                    <span class="followup-due">({{ followup.due_date.strftime('%b %d') }})</span>
+                    <form action="{{ url_for('followups.complete', id=followup.id) }}" method="post" class="inline-form" data-confirm="Mark this follow-up as complete?">
+                        <button type="submit" class="btn btn-small btn-success">Done</button>
+                    </form>
+                    <form action="{{ url_for('followups.snooze', id=followup.id) }}" method="post" class="inline-form">
+                        <input type="number" name="days" value="1" min="1" max="365" class="snooze-input">
+                        <button type="submit" class="btn btn-small">Snooze</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="project-actions">
+            <a href="{{ url_for('updates.new') }}?project_id={{ project.id }}" class="btn btn-small btn-primary">Add Update</a>
+            <a href="{{ url_for('projects.detail', id=project.id) }}" class="btn btn-small">View</a>
+        </div>
+    </li>
+    {% endmacro %}
+
+    {# Due Today Section #}
     <section class="dashboard-section urgency-critical">
-        <h2>Overdue Follow-ups</h2>
-        {% if followups_overdue %}
-        <ul class="dashboard-list">
-            {% for followup in followups_overdue %}
-            <li>
-                <div class="item-info">
-                    <strong>{{ followup.target_name }}</strong>
-                    <span class="target-type">({{ followup.target_type | replace('_', ' ') | title }})</span>
-                    <span class="due-date">(Due: {{ followup.due_date }})</span>
-                    <span class="project-name">- {{ followup.project.client_name }}: {{ followup.project.project_name }}</span>
-                    {% if followup.notes %}<br><span class="notes">{{ followup.notes }}</span>{% endif %}
-                </div>
-                <div class="item-actions">
-                    <form action="{{ url_for('followups.complete', id=followup.id) }}" method="post" style="display: inline;" data-confirm="Mark this follow-up as complete?">
-                        <button type="submit" class="btn btn-small btn-success">Complete</button>
-                    </form>
-                    <form action="{{ url_for('followups.snooze', id=followup.id) }}" method="post" style="display: inline;">
-                        <input type="number" name="days" value="1" min="1" max="365" style="width: 50px;">
-                        <button type="submit" class="btn btn-small">Snooze</button>
-                    </form>
-                    <a href="{{ url_for('projects.detail', id=followup.project.id) }}" class="btn btn-small">View</a>
-                </div>
-            </li>
+        <h2>Due Today</h2>
+        {% if due_today %}
+        <ul class="dashboard-list project-list">
+            {% for project in due_today %}
+            {{ project_card(project) }}
             {% endfor %}
         </ul>
         {% else %}
-        <p class="placeholder">No overdue follow-ups.</p>
+        <p class="placeholder">No projects due today.</p>
         {% endif %}
     </section>
 
+    {# Due Tomorrow Section #}
     <section class="dashboard-section urgency-warning">
-        <h2>Follow-ups Due Today</h2>
-        {% if followups_today %}
-        <ul class="dashboard-list">
-            {% for followup in followups_today %}
-            <li>
-                <div class="item-info">
-                    <strong>{{ followup.target_name }}</strong>
-                    <span class="target-type">({{ followup.target_type | replace('_', ' ') | title }})</span>
-                    <span class="project-name">- {{ followup.project.client_name }}: {{ followup.project.project_name }}</span>
-                    {% if followup.notes %}<br><span class="notes">{{ followup.notes }}</span>{% endif %}
-                </div>
-                <div class="item-actions">
-                    <form action="{{ url_for('followups.complete', id=followup.id) }}" method="post" style="display: inline;" data-confirm="Mark this follow-up as complete?">
-                        <button type="submit" class="btn btn-small btn-success">Complete</button>
-                    </form>
-                    <form action="{{ url_for('followups.snooze', id=followup.id) }}" method="post" style="display: inline;">
-                        <input type="number" name="days" value="1" min="1" max="365" style="width: 50px;">
-                        <button type="submit" class="btn btn-small">Snooze</button>
-                    </form>
-                    <a href="{{ url_for('projects.detail', id=followup.project.id) }}" class="btn btn-small">View</a>
-                </div>
-            </li>
+        <h2>Due Tomorrow</h2>
+        {% if due_tomorrow %}
+        <ul class="dashboard-list project-list">
+            {% for project in due_tomorrow %}
+            {{ project_card(project) }}
             {% endfor %}
         </ul>
         {% else %}
-        <p class="placeholder">No follow-ups due today.</p>
+        <p class="placeholder">No projects due tomorrow.</p>
         {% endif %}
     </section>
 
+    {# Due Next 5 Days Section #}
     <section class="dashboard-section urgency-info">
-        <h2>Upcoming Deadlines</h2>
-        {% if upcoming_deadlines %}
-        <ul class="dashboard-list">
-            {% for project in upcoming_deadlines %}
-            <li>
-                <div class="item-info">
-                    <strong>{{ project.client_name }}</strong>: {{ project.project_name }}
-                    {% if project.hard_deadline %}
-                    <span class="hard-deadline">(Hard: {{ project.hard_deadline }})</span>
-                    {% endif %}
-                    <span class="internal-deadline">(Internal: {{ project.internal_deadline }})</span>
-                </div>
-                <div class="item-actions">
-                    <a href="{{ url_for('projects.detail', id=project.id) }}" class="btn btn-small">View</a>
-                </div>
-            </li>
+        <h2>Due in 2-5 Days</h2>
+        {% if due_next_5_days %}
+        <ul class="dashboard-list project-list">
+            {% for project in due_next_5_days %}
+            {{ project_card(project) }}
             {% endfor %}
         </ul>
         {% else %}
-        <p class="placeholder">No upcoming deadlines in the next 7 days.</p>
+        <p class="placeholder">No projects due in 2-5 days.</p>
         {% endif %}
     </section>
 
+    {# Due Next 2 Weeks Section #}
     <section class="dashboard-section">
-        <h2>Dusty Projects</h2>
-        {% if dusty_projects %}
-        <ul class="dashboard-list">
-            {% for project in dusty_projects %}
-            <li class="staleness-{{ project.staleness_level }}">
-                <div class="item-info">
-                    <strong>{{ project.client_name }}</strong>: {{ project.project_name }}
-                    <span class="days-stale">({{ project.days_since_update }} days without update)</span>
-                </div>
-                <div class="item-actions">
-                    <a href="{{ url_for('updates.new') }}?project_id={{ project.id }}" class="btn btn-small btn-primary">Add Update</a>
-                    <a href="{{ url_for('projects.detail', id=project.id) }}" class="btn btn-small">View</a>
-                </div>
-            </li>
+        <h2>Due in 6-14 Days</h2>
+        {% if due_next_2_weeks %}
+        <ul class="dashboard-list project-list">
+            {% for project in due_next_2_weeks %}
+            {{ project_card(project) }}
             {% endfor %}
         </ul>
         {% else %}
-        <p class="placeholder">No dusty projects.</p>
+        <p class="placeholder">No projects due in 6-14 days.</p>
         {% endif %}
     </section>
 </div>
