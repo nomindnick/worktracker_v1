@@ -400,3 +400,340 @@ class TestTaskListUI:
         response = client.get('/tasks/')
         data = response.data.decode('utf-8')
         assert 'Priority' in data
+
+    def test_list_has_edit_button(self, client, sample_task, db_session):
+        """Task list shows Edit button for each task."""
+        response = client.get('/tasks/')
+        data = response.data.decode('utf-8')
+        assert f'/tasks/{sample_task.id}/edit' in data
+        assert '>Edit</a>' in data
+
+
+class TestTaskEdit:
+    """Test GET/POST /tasks/<id>/edit routes."""
+
+    def test_edit_get_returns_200(self, client, sample_task, db_session):
+        """Edit task form returns 200 OK."""
+        response = client.get(f'/tasks/{sample_task.id}/edit')
+        assert response.status_code == 200
+
+    def test_edit_get_404_for_missing_task(self, client, db_session):
+        """Edit returns 404 for non-existent task."""
+        response = client.get('/tasks/99999/edit')
+        assert response.status_code == 404
+
+    def test_edit_get_shows_current_values(self, client, sample_task, db_session):
+        """Edit form shows task's current field values."""
+        response = client.get(f'/tasks/{sample_task.id}/edit')
+        data = response.data.decode('utf-8')
+
+        assert sample_task.target_name in data
+        assert str(sample_task.due_date) in data
+
+    def test_edit_get_preselects_project(self, client, sample_task, sample_project, db_session):
+        """Edit form pre-selects the task's current project."""
+        response = client.get(f'/tasks/{sample_task.id}/edit')
+        data = response.data.decode('utf-8')
+
+        # Project should be selected in dropdown
+        assert 'Acme Corp' in data
+        assert 'selected' in data
+
+    def test_edit_get_preselects_target_type(self, client, sample_task, db_session):
+        """Edit form pre-selects the task's current target_type."""
+        sample_task.target_type = 'client'
+        db_session.commit()
+
+        response = client.get(f'/tasks/{sample_task.id}/edit')
+        data = response.data.decode('utf-8')
+
+        # Find the client option and verify it has selected
+        assert 'value="client"' in data
+
+    def test_edit_get_preselects_priority(self, client, sample_task, db_session):
+        """Edit form pre-selects the task's current priority."""
+        sample_task.priority = 'high'
+        db_session.commit()
+
+        response = client.get(f'/tasks/{sample_task.id}/edit')
+        data = response.data.decode('utf-8')
+
+        # Find the high option with selected
+        assert 'value="high"' in data
+
+    def test_edit_post_updates_task(self, client, sample_task, sample_project, db_session):
+        """POST to edit updates task fields."""
+        new_due_date = (date.today() + timedelta(days=14)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'opposing_counsel',
+            'target_name': 'Updated Name',
+            'due_date': new_due_date,
+            'description': 'Updated description',
+            'priority': 'low'
+        }, follow_redirects=False)
+
+        assert response.status_code == 302
+
+        # Verify task was updated
+        db_session.refresh(sample_task)
+        assert sample_task.target_name == 'Updated Name'
+        assert sample_task.target_type == 'opposing_counsel'
+        assert sample_task.description == 'Updated description'
+        assert sample_task.priority == 'low'
+
+    def test_edit_post_redirects_to_project_detail(self, client, sample_task, sample_project, db_session):
+        """POST redirects to project detail page."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'medium'
+        }, follow_redirects=False)
+
+        assert f'/projects/{sample_project.id}' in response.location
+
+    def test_edit_post_flashes_success(self, client, sample_task, sample_project, db_session):
+        """POST sets success flash message."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'medium'
+        }, follow_redirects=True)
+
+        assert b'Task updated successfully' in response.data
+
+    def test_edit_post_validates_required_target_name(self, client, sample_task, sample_project, db_session):
+        """POST validates target_name is required."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': '',
+            'due_date': due_date,
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Target name is required' in response.data
+
+    def test_edit_post_validates_required_due_date(self, client, sample_task, sample_project, db_session):
+        """POST validates due_date is required."""
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': '',
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Due date is required' in response.data
+
+    def test_edit_post_validates_due_date_format(self, client, sample_task, sample_project, db_session):
+        """POST with invalid due_date format shows validation error."""
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': 'not-a-date',
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Due date must be a valid date' in response.data
+
+    def test_edit_post_validates_target_type(self, client, sample_task, sample_project, db_session):
+        """POST with invalid target_type shows validation error."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'invalid_type',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 200
+        assert b'Invalid target type' in response.data
+
+    def test_edit_post_validates_priority(self, client, sample_task, sample_project, db_session):
+        """POST with invalid priority shows validation error."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'invalid'
+        })
+
+        assert response.status_code == 200
+        assert b'Invalid priority' in response.data
+
+    def test_edit_post_404_for_missing_task(self, client, db_session):
+        """Edit POST returns 404 for non-existent task."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post('/tasks/99999/edit', data={
+            'project_id': 1,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 404
+
+    def test_edit_post_404_for_invalid_project(self, client, sample_task, db_session):
+        """POST returns 404 for non-existent project."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': 99999,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 404
+
+    def test_edit_post_404_for_archived_project(self, client, sample_task, sample_project, db_session):
+        """POST returns 404 if moving task to archived project."""
+        sample_project.status = 'archived'
+        db_session.commit()
+
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'medium'
+        })
+
+        assert response.status_code == 404
+
+    def test_edit_post_defaults_target_type_to_self(self, client, sample_task, sample_project, db_session):
+        """POST defaults target_type to 'self' if empty."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': '',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'medium'
+        }, follow_redirects=False)
+
+        assert response.status_code == 302
+        db_session.refresh(sample_task)
+        assert sample_task.target_type == 'self'
+
+    def test_edit_post_defaults_priority_to_medium(self, client, sample_task, sample_project, db_session):
+        """POST defaults priority to 'medium' if empty."""
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': ''
+        }, follow_redirects=False)
+
+        assert response.status_code == 302
+        db_session.refresh(sample_task)
+        assert sample_task.priority == 'medium'
+
+    def test_edit_post_handles_optional_description(self, client, sample_task, sample_project, db_session):
+        """POST handles empty description correctly (sets to None)."""
+        sample_task.description = 'Some description'
+        db_session.commit()
+
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'medium',
+            'description': ''
+        }, follow_redirects=False)
+
+        assert response.status_code == 302
+        db_session.refresh(sample_task)
+        assert sample_task.description is None
+
+    def test_edit_allows_editing_completed_task(self, client, sample_task, sample_project, db_session):
+        """Completed tasks can still be edited."""
+        from datetime import datetime
+        sample_task.completed = True
+        sample_task.completed_at = datetime.utcnow()
+        db_session.commit()
+
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': sample_project.id,
+            'target_type': 'client',
+            'target_name': 'Updated Completed Task',
+            'due_date': due_date,
+            'priority': 'high'
+        }, follow_redirects=False)
+
+        assert response.status_code == 302
+        db_session.refresh(sample_task)
+        assert sample_task.target_name == 'Updated Completed Task'
+        assert sample_task.completed is True  # Still completed
+
+    def test_edit_allows_changing_project(self, client, sample_task, sample_project, db_session):
+        """POST allows moving task to a different active project."""
+        from app.models import Project
+
+        # Create a second project
+        project2 = Project(
+            client_name='Other Corp',
+            project_name='Other Matter',
+            assigner='Jane Doe',
+            assigned_attorneys='Bob'
+        )
+        db_session.add(project2)
+        db_session.commit()
+
+        due_date = (date.today() + timedelta(days=7)).isoformat()
+        response = client.post(f'/tasks/{sample_task.id}/edit', data={
+            'project_id': project2.id,
+            'target_type': 'client',
+            'target_name': 'Test Person',
+            'due_date': due_date,
+            'priority': 'medium'
+        }, follow_redirects=False)
+
+        assert response.status_code == 302
+        db_session.refresh(sample_task)
+        assert sample_task.project_id == project2.id
+
+
+class TestProjectDetailTaskEditUI:
+    """Test Edit button in project detail page."""
+
+    def test_project_detail_has_edit_button_for_pending_tasks(self, client, sample_task, sample_project, db_session):
+        """Project detail page shows Edit button for pending tasks."""
+        response = client.get(f'/projects/{sample_project.id}')
+        data = response.data.decode('utf-8')
+
+        assert f'/tasks/{sample_task.id}/edit' in data
+
+    def test_project_detail_has_edit_button_for_completed_tasks(self, client, sample_task, sample_project, db_session):
+        """Project detail page shows Edit button for completed tasks."""
+        from datetime import datetime
+        sample_task.completed = True
+        sample_task.completed_at = datetime.utcnow()
+        db_session.commit()
+
+        response = client.get(f'/projects/{sample_project.id}')
+        data = response.data.decode('utf-8')
+
+        assert f'/tasks/{sample_task.id}/edit' in data

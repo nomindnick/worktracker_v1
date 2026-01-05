@@ -22,11 +22,11 @@
         <div class="form-group">
             <label for="target_type">Who is responsible? *</label>
             <select id="target_type" name="target_type" required>
-                <option value="self">Self (I'm doing this)</option>
-                <option value="associate">Associate</option>
-                <option value="client">Client</option>
-                <option value="opposing_counsel">Opposing Counsel</option>
-                <option value="assigning_attorney">Assigning Attorney</option>
+                <option value="self" {% if task and task.target_type == 'self' %}selected{% endif %}>Self (I'm doing this)</option>
+                <option value="associate" {% if task and task.target_type == 'associate' %}selected{% endif %}>Associate</option>
+                <option value="client" {% if task and task.target_type == 'client' %}selected{% endif %}>Client</option>
+                <option value="opposing_counsel" {% if task and task.target_type == 'opposing_counsel' %}selected{% endif %}>Opposing Counsel</option>
+                <option value="assigning_attorney" {% if task and task.target_type == 'assigning_attorney' %}selected{% endif %}>Assigning Attorney</option>
             </select>
         </div>
 
@@ -53,9 +53,9 @@
             <div class="form-group">
                 <label for="priority">Priority *</label>
                 <select id="priority" name="priority" required>
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
+                    <option value="low" {% if task and task.priority == 'low' %}selected{% endif %}>Low</option>
+                    <option value="medium" {% if not task or task.priority == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="high" {% if task and task.priority == 'high' %}selected{% endif %}>High</option>
                 </select>
             </div>
         </div>

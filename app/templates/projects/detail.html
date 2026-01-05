@@ -143,6 +143,7 @@
                     {% endif %}
                 </div>
                 <div class="task-actions">
+                    <a href="{{ url_for('tasks.edit', id=task.id) }}" class="btn btn-small">Edit</a>
                     <form action="{{ url_for('tasks.complete', id=task.id) }}" method="post" style="display: inline;" data-confirm="Mark this task as complete?">
                         <button type="submit" class="btn btn-small btn-success">Complete</button>
                     </form>
@@ -171,6 +172,9 @@
                     {% if task.description %}
                     <p class="task-description">{{ task.description }}</p>
                     {% endif %}
+                </div>
+                <div class="task-actions">
+                    <a href="{{ url_for('tasks.edit', id=task.id) }}" class="btn btn-small">Edit</a>
                 </div>
             </li>
             {% endfor %}

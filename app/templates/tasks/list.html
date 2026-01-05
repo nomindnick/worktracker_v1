@@ -31,6 +31,7 @@
                 <td><span class="priority priority-{{ task.priority }}">{{ task.priority }}</span></td>
                 <td>{{ task.description or '-' }}</td>
                 <td>
+                    <a href="{{ url_for('tasks.edit', id=task.id) }}" class="btn btn-small">Edit</a>
                     <form action="{{ url_for('tasks.complete', id=task.id) }}" method="post" style="display: inline;" data-confirm="Mark this task as complete?">
                         <button type="submit" class="btn btn-small btn-success">Complete</button>
                     </form>
